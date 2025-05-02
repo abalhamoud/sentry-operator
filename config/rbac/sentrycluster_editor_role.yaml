@@ -1,0 +1,27 @@
+# permissions for end users to edit sentryclusters.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app.kubernetes.io/name: sentry-operator
+    app.kubernetes.io/managed-by: kustomize
+  name: sentrycluster-editor-role
+rules:
+- apiGroups:
+  - sentry.sentry.io
+  resources:
+  - sentryclusters
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - sentry.sentry.io
+  resources:
+  - sentryclusters/status
+  verbs:
+  - get

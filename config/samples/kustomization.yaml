@@ -1,0 +1,4 @@
+## Append samples of your project ##
+resources:
+- sentry_v1alpha1_sentrycluster.yaml
+# +kubebuilder:scaffold:manifestskustomizesamples
