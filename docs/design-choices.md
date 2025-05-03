@@ -1,154 +1,241 @@
-# SentryCluster CRD Design Choices
+# Sentry Operator Design Choices
 
-This document explains the design choices made for the SentryCluster Custom Resource Definition (CRD), addressing the important considerations for each field in the specification.
+This document explains the design choices made for the Sentry Custom Resource Definition (CRD) and addresses the important considerations for each field in the specification.
 
-## Version Field
+## SentryClusterSpec Fields
 
-### Why included
-The Version field is crucial for specifying which Sentry version to deploy. This allows users to control which version of Sentry they want to run, enabling planned upgrades and rollbacks.
+### Version
 
-### Data type
-The Version field is a string, as Sentry versions follow semantic versioning (e.g., "24.5.0").
+**Why included**: The Version field is crucial for specifying which Sentry version to deploy. It enables users to control which version they want to run and facilitates upgrades.
 
-### Possible values
-Any valid Sentry version string (e.g., "24.5.0", "24.4.0").
+**Data type**: `string` - This allows for semantic versioning formats like "24.5.0".
 
-### Effect on deployment
-The Version field determines the container image tag used for all Sentry components (web, worker, etc.). It ensures that all components are running the same version of Sentry.
+**Possible values**: Any valid Sentry version (e.g., "24.5.0", "24.4.0").
 
-### Security considerations
-No special security considerations for this field.
+**Effect on deployment**: Determines the Sentry container image tag used in the deployment.
 
-### Validation rules
-Should be a valid semantic version string. The operator should validate that the specified version exists as a container image.
+**Security considerations**: No special security considerations.
 
-## Resources Field
+**Validation rules**: Should be a valid semantic version string.
 
-### Why included
-The Resources field allows users to configure CPU and memory requests and limits for each Sentry component. This is essential for resource management in Kubernetes, ensuring that each component has the resources it needs to function properly.
+### Resources
 
-### Data type
-The Resources field is an object containing nested objects for each component, each using Kubernetes' standard ResourceRequirements type. This provides a familiar and consistent way to specify resource requirements.
+**Why included**: The Resources field allows users to configure CPU and memory requests and limits for each Sentry component. This is essential for proper resource management in Kubernetes.
 
-### Possible values
-Each component can have requests and limits for CPU and memory, following Kubernetes' resource quantity format (e.g., "500m" CPU, "1Gi" memory).
+**Data type**: Custom `Resources` struct containing `corev1.ResourceRequirements` fields for each component.
 
-### Effect on deployment
-The Resources field directly affects the resource requests and limits set on the Kubernetes Pods for each component. This influences scheduling decisions, quality of service, and resource allocation.
+**Possible values**: Valid Kubernetes resource requests and limits for CPU and memory.
 
-### Security considerations
-No direct security implications, but properly configured resources help prevent resource exhaustion attacks.
+**Effect on deployment**: Determines the resource allocation for each component, affecting performance and stability.
 
-### Validation rules
-- CPU and memory values should follow Kubernetes' resource quantity format.
-- Requests should not exceed limits.
-- Minimum values may be enforced for certain components to ensure stability.
+**Security considerations**: No special security considerations.
 
-## Persistence Field
+**Validation rules**: Should follow Kubernetes resource quantity format.
 
-### Why included
-The Persistence field handles storage requirements for stateful components like PostgreSQL, Redis, Kafka, and ClickHouse. This is essential for data durability and performance.
+### Persistence
 
-### Data type
-The Persistence field is an object containing nested objects for each stateful component, with options for both managed (PVC-based) and external instances.
+**Why included**: The Persistence field handles storage requirements for PostgreSQL, Redis, Kafka, ClickHouse, and Snuba. This is essential for data durability.
 
-### Possible values
-- For managed instances: StorageClass name and size.
-- For external instances: Secret name containing connection details.
+**Data type**: Custom `Persistence` struct with configurations for each data store.
 
-### Effect on deployment
-- For managed instances: Creates PersistentVolumeClaims with the specified size and StorageClass.
-- For external instances: Configures components to connect to external services using the provided credentials.
+**Possible values**:
+- For managed instances: StorageClass name and size
+- For external instances: Connection details via Secret references
 
-### Security considerations
-- Connection details for external services are stored in Kubernetes Secrets.
-- Access to these Secrets should be restricted.
+**Effect on deployment**: Determines how data is stored and persisted, affecting data durability and performance.
 
-### Validation rules
-- Size should be a valid Kubernetes quantity.
-- StorageClass should exist in the cluster.
-- For external instances, the referenced Secret should exist and contain the required keys.
+**Security considerations**: Connection credentials for external services are stored in Secrets.
 
-## Ingress Field
+**Validation rules**:
+- Size should be a valid Kubernetes quantity
+- StorageClass should exist in the cluster
+- Secret references should point to existing Secrets
 
-### Why included
-The Ingress field provides options for exposing Sentry to external traffic, allowing users to access the Sentry web interface.
+### Ingress
 
-### Data type
-The Ingress field is an object with properties for configuring Kubernetes Ingress resources.
+**Why included**: The Ingress field provides options for exposing Sentry to external traffic, supporting different Ingress controllers.
 
-### Possible values
-- enabled: true/false
-- host: domain name
-- path: URL path
-- TLS configuration: enabled, secretName, etc.
-- Annotations for different Ingress controllers
+**Data type**: Custom `Ingress` struct with configuration options.
 
-### Effect on deployment
-Creates a Kubernetes Ingress resource with the specified configuration, making Sentry accessible from outside the cluster.
+**Possible values**:
+- Ingress types: "nginx", "traefik", "openshift-route"
+- TLS configuration
+- Host and path settings
 
-### Security considerations
-- TLS should be enabled for production deployments.
-- The TLS certificate should be valid and trusted.
-- Access control should be implemented at the application level.
+**Effect on deployment**: Determines how Sentry is exposed externally and how TLS is configured.
 
-### Validation rules
-- Host should be a valid domain name.
-- If TLS is enabled, a valid secretName should be provided or cert-manager configuration should be valid.
+**Security considerations**: TLS certificates should be properly managed.
 
-## Config Field
+**Validation rules**:
+- Host should be a valid domain name
+- Path should be a valid URL path
 
-### Why included
-The Config field manages Sentry's application-specific configuration, allowing users to customize Sentry's behavior according to their needs.
+### Config
 
-### Data type
-The Config field is an object with nested objects for different aspects of Sentry's configuration.
+**Why included**: The Config field manages Sentry-specific settings, allowing users to customize Sentry's behavior.
 
-### Possible values
-Various settings for email, authentication, rate limiting, data retention, integrations, privacy, and performance.
+**Data type**: Custom `Config` struct with nested configuration options.
 
-### Effect on deployment
-Generates ConfigMaps and Secrets that configure Sentry's behavior through environment variables and configuration files.
+**Possible values**: Various settings for email, authentication, rate limiting, data retention, etc.
 
-### Security considerations
-- Sensitive information like secret keys and passwords are stored in Kubernetes Secrets.
-- The Sentry secret key is particularly important for cryptographic signing.
+**Effect on deployment**: Determines Sentry's behavior and features.
 
-### Validation rules
-- Email configuration should include valid SMTP settings.
-- Rate limiting values should be positive integers.
-- Sample rates should be between 0.0 and 1.0.
+**Security considerations**:
+- Secret key should be stored securely
+- Integration credentials are stored in Secrets
+- Privacy settings affect data handling
 
-## Replica Field
+**Validation rules**:
+- Email addresses should be valid
+- Rate limits should be positive integers
+- Retention days should be positive integers
 
-### Why included
-The Replica field defines the number of replicas for scalable components like web, worker, and relay. This allows users to scale Sentry horizontally based on their needs.
+### Replica
 
-### Data type
-The Replica field is an object with integer fields for each scalable component.
+**Why included**: The Replica field defines the number of replicas for each component, allowing users to scale their Sentry deployment.
 
-### Possible values
-Positive integers representing the number of replicas for each component.
+**Data type**: Custom `Replica` struct with integer fields for each component.
 
-### Effect on deployment
-Sets the replicas field on Deployments and StatefulSets for the respective components.
+**Possible values**: Positive integers representing the number of replicas.
 
-### Security considerations
-No direct security implications.
+**Effect on deployment**: Determines the scale and high availability of the Sentry deployment.
 
-### Validation rules
-- Values should be positive integers.
-- Maximum values may be enforced to prevent resource exhaustion.
+**Security considerations**: No special security considerations.
 
-## Overall Design Philosophy
+**Validation rules**: Values should be positive integers.
 
-The SentryCluster CRD is designed with the following principles in mind:
+## Detailed Component Configurations
 
-1. **Flexibility**: Users can choose between managed and external services for stateful components.
-2. **Familiarity**: The CRD uses Kubernetes native types where possible (e.g., ResourceRequirements).
-3. **Completeness**: All aspects of Sentry configuration are covered.
-4. **Security**: Sensitive information is stored in Secrets.
-5. **Validation**: The CRD includes validation rules to prevent misconfiguration.
-6. **Extensibility**: The CRD can be extended to support new features in future versions of Sentry.
+### PostgreSQL Configuration
 
-This design allows users to deploy and manage Sentry in a way that best fits their needs, whether they're running a small development instance or a large production deployment.
+PostgreSQL is Sentry's primary database, storing user accounts, projects, and other metadata.
+
+**Design choices**:
+- Support for both managed and external PostgreSQL
+- For managed instances, configurable storage class and size
+- For external instances, connection details via Secret
+- Resource requirements configurable
+
+**Considerations**:
+- Data durability is critical
+- Performance impacts overall Sentry performance
+- Backup and restore capabilities are important
+
+### Redis Configuration
+
+Redis is used for caching, rate limiting, and as a message broker.
+
+**Design choices**:
+- Support for both managed and external Redis
+- For managed instances, configurable storage class and size
+- For external instances, connection details via Secret
+- Resource requirements configurable
+
+**Considerations**:
+- Performance impacts overall Sentry performance
+- Data persistence is important but less critical than PostgreSQL
+
+### Kafka Configuration
+
+Kafka is used for event streaming in Sentry's processing pipeline.
+
+**Design choices**:
+- Support for both managed and external Kafka
+- For managed instances, configurable replicas, resources, and storage
+- For external instances, connection details and topic configuration via Secret
+- Configurable broker settings
+
+**Considerations**:
+- Performance impacts event processing throughput
+- Topic configuration is important for proper event routing
+
+### ClickHouse Configuration
+
+ClickHouse is used for analytics and event storage.
+
+**Design choices**:
+- Support for both managed and external ClickHouse
+- For managed instances, configurable replicas, resources, and storage
+- For external instances, connection details via Secret
+- Configurable ClickHouse settings
+
+**Considerations**:
+- Performance impacts query performance for event data
+- Storage requirements can be significant for high-volume deployments
+
+### Snuba Configuration
+
+Snuba is Sentry's event storage service that sits on top of ClickHouse.
+
+**Design choices**:
+- Configurable replicas for API, consumer, and replacer components
+- Separate resource requirements for each component
+- Configurable Snuba-specific settings
+
+**Considerations**:
+- Performance impacts query performance for event data
+- Different components have different scaling characteristics
+
+## Security Considerations
+
+1. **Secret Management**:
+   - Sensitive data like passwords, API keys, and tokens are stored in Kubernetes Secrets
+   - References to Secrets are used instead of embedding sensitive data in the CRD
+
+2. **TLS Configuration**:
+   - Support for TLS termination at the Ingress level
+   - Integration with cert-manager for certificate management
+
+3. **Authentication**:
+   - Support for various authentication methods (SSO, LDAP)
+   - Configuration for user registration and email verification
+
+4. **Privacy Settings**:
+   - IP anonymization options
+   - Data scrubbing capabilities
+   - Field-level control over sensitive data
+
+## Validation Rules
+
+While not implemented in this initial version, the following validation rules should be applied:
+
+1. **Version**:
+   - Must be a valid semantic version string
+   - Should be a version that exists in the Sentry Docker registry
+
+2. **Resources**:
+   - CPU and memory values must be valid Kubernetes resource quantities
+
+3. **Persistence**:
+   - Storage size must be a valid Kubernetes quantity
+   - StorageClass must exist in the cluster
+   - Secret references must point to existing Secrets
+
+4. **Ingress**:
+   - Host must be a valid domain name
+   - Path must be a valid URL path
+
+5. **Config**:
+   - Email addresses must be valid
+   - Rate limits must be positive integers
+   - Retention days must be positive integers
+
+6. **Replica**:
+   - Values must be positive integers
+
+## Future Enhancements
+
+1. **Validation Webhooks**:
+   - Implement validation webhooks to enforce the validation rules
+
+2. **Status Conditions**:
+   - Expand status conditions to provide more detailed information about the state of each component
+
+3. **Metrics**:
+   - Add metrics for monitoring the health and performance of the Sentry deployment
+
+4. **Backup and Restore**:
+   - Add support for backing up and restoring Sentry data
+
+5. **Upgrades**:
+   - Implement a more sophisticated upgrade strategy for handling version upgrades

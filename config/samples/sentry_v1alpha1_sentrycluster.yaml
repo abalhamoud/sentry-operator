@@ -25,7 +25,7 @@ spec:
       limits:
         cpu: "1000m"
         memory: "1Gi"
-    postgres:
+    postgresql:
       requests:
         cpu: "500m"
         memory: "512Mi"
@@ -79,74 +79,136 @@ spec:
   persistence:
     # PostgreSQL configuration
     postgresql:
-      # Use managed PostgreSQL (deployed by the operator)
-      storageClass: "standard"
-      size: "10Gi"
+      managed:
+        storageClass: "standard"
+        size: "10Gi"
       # Uncomment to use external PostgreSQL
       # external:
       #   secretName: "external-postgres-secret"
     
     # Redis configuration
     redis:
-      # Use managed Redis (deployed by the operator)
-      storageClass: "standard"
-      size: "5Gi"
+      managed:
+        storageClass: "standard"
+        size: "5Gi"
       # Uncomment to use external Redis
       # external:
       #   secretName: "external-redis-secret"
     
     # Kafka configuration
     kafka:
-      # Use managed Kafka (deployed by the operator)
-      storageClass: "standard"
-      size: "10Gi"
+      managed:
+        replicas: 3
+        storage:
+          storageClass: "standard"
+          size: "10Gi"
+        version: "3.3.2"
+        config:
+          "auto.create.topics.enable": "false"
       # Uncomment to use external Kafka
       # external:
       #   secretName: "external-kafka-secret"
+      #   topics:
+      #     - "ingest-events"
+      #     - "ingest-attachments"
+      #     - "ingest-transactions"
     
     # ClickHouse configuration
     clickhouse:
-      # Use managed ClickHouse (deployed by the operator)
-      storageClass: "standard"
-      size: "20Gi"
+      managed:
+        replicas: 1
+        storage:
+          storageClass: "standard"
+          size: "20Gi"
+        version: "22.3.6"
       # Uncomment to use external ClickHouse
       # external:
       #   secretName: "external-clickhouse-secret"
+    
+    # Snuba configuration
+    snuba:
+      replicas:
+        api: 2
+        consumer: 2
+        replacer: 1
+      config:
+        "ENABLE_SENTRY_METRICS_DEV": "true"
   
   # Ingress configuration for exposing Sentry
   ingress:
     enabled: true
+    type: "nginx"
     host: "sentry.example.com"
     path: "/"
+    pathType: "Prefix"
     # TLS configuration
     tls:
       enabled: true
       secretName: "sentry-tls-secret"
+      certManager: false
+    annotations:
+      "nginx.ingress.kubernetes.io/proxy-body-size": "50m"
   
   # Sentry-specific configuration
   config:
     # Email configuration
     email:
-      host: "smtp.example.com"
-      port: 587
-      user: "sentry@example.com"
-      password: "your-smtp-password"
+      backend: "smtp"
       from: "sentry@example.com"
+      smtp:
+        host: "smtp.example.com"
+        port: 587
+        username: "sentry@example.com"
+        secretName: "sentry-smtp-secret"
+        useTLS: true
     
     # Authentication configuration
     auth:
       allowRegistration: false
       requireEmailVerification: true
     
+    # Rate limiting configuration
+    rateLimiting:
+      eventsPerMinute: 1000
+      errorsPerMinute: 500
+      transactionsPerMinute: 500
+    
+    # Data retention configuration
+    dataRetention:
+      eventRetentionDays: 90
+      issueRetentionDays: 90
+    
     # Feature flags
     features:
-      organizations:
-        default: true
-      projects:
-        default: true
+      "organizations:metrics": true
+      "projects:sample-transactions": true
+      "organizations:performance-view": true
+    
+    # Privacy configuration
+    privacy:
+      ipAnonymization: true
+      scrubData: true
+      scrubDefaults: true
+      scrubFields:
+        - "password"
+        - "creditcard"
+        - "ssn"
+    
+    # Performance configuration
+    performance:
+      enabled: true
+      sampleRate: "0.3"
+      tracesSampleRate: "0.1"
   
   # Replica count for scalable components
   replica:
     web: 2
     worker: 2
+    kafka: 3
+    clickhouse: 1
+    snuba:
+      api: 2
+      consumer: 2
+      replacer: 1
     relay: 2
+    symbolicator: 1
