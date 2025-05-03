@@ -54,6 +54,12 @@ func (r *SnubaReconciler) Reconcile(ctx context.Context, sentryCluster *sentryv1
 		log.Info("ClickHouse is not enabled, skipping Snuba")
 		return ctrl.Result{}, nil
 	}
+	
+	// Check if dependencies are ready
+	if !r.areDependenciesReady(sentryCluster) {
+		log.Info("Dependencies for Snuba are not ready yet, requeuing")
+		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+	}
 
 	// 1. Reconcile ConfigMap for Snuba configuration
 	configMapName := sentryCluster.Name + "-snuba-config"
@@ -397,4 +403,20 @@ func (r *SnubaReconciler) defineSnubaDeployment(sentryCluster *sentryv1alpha1.Se
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on Snuba Deployment")
 	}
 	return deployment
+}
+
+// areDependenciesReady checks if all dependencies for Snuba are ready
+func (r *SnubaReconciler) areDependenciesReady(sentryCluster *sentryv1alpha1.SentryCluster) bool {
+	// Check if Kafka is ready
+	if sentryCluster.Spec.Persistence.Kafka != nil && !sentryCluster.Status.ComponentStatus.Kafka.Ready {
+		return false
+	}
+	
+	// Check if ClickHouse is ready
+	if sentryCluster.Spec.Persistence.ClickHouse != nil && !sentryCluster.Status.ComponentStatus.ClickHouse.Ready {
+		return false
+	}
+	
+	// If we're using external services, we assume they're ready
+	return true
 }

@@ -48,6 +48,12 @@ type SymbolicatorReconciler struct {
 func (r *SymbolicatorReconciler) Reconcile(ctx context.Context, sentryCluster *sentryv1alpha1.SentryCluster) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 	log.Info("Reconciling Symbolicator", "SentryCluster", sentryCluster.Name)
+	
+	// Check if dependencies are ready
+	if !r.areDependenciesReady(sentryCluster) {
+		log.Info("Dependencies for Symbolicator are not ready yet, requeuing")
+		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+	}
 
 	// 1. Reconcile ConfigMap for Symbolicator configuration
 	configMapName := sentryCluster.Name + "-symbolicator-config"
@@ -283,4 +289,14 @@ func (r *SymbolicatorReconciler) defineSymbolicatorDeployment(sentryCluster *sen
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on Symbolicator Deployment")
 	}
 	return deployment
+}
+
+// areDependenciesReady checks if all dependencies for Symbolicator are ready
+func (r *SymbolicatorReconciler) areDependenciesReady(sentryCluster *sentryv1alpha1.SentryCluster) bool {
+	// Symbolicator primarily depends on Redis for caching
+	if !sentryCluster.Status.ComponentStatus.Redis.Ready {
+		return false
+	}
+	
+	return true
 }

@@ -19,6 +19,7 @@ package controller
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/pkg/errors"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -32,6 +33,7 @@ import (
 
 	sentryv1alpha1 "github.com/abalhamoud/sentry-operator/api/v1alpha1"
 	"github.com/abalhamoud/sentry-operator/internal/controller/components"
+	"github.com/abalhamoud/sentry-operator/internal/controller/jobs"
 )
 
 // SentryClusterReconciler reconciles a SentryCluster object
@@ -51,6 +53,12 @@ type SentryClusterReconciler struct {
 	SentryWebReconciler    *components.SentryWebReconciler
 	SentryWorkerReconciler *components.SentryWorkerReconciler
 	IngressReconciler      *components.IngressReconciler
+
+	// Job reconcilers
+	PostgresInitJobReconciler   *jobs.PostgresInitJobReconciler
+	KafkaInitJobReconciler      *jobs.KafkaInitJobReconciler
+	SnubaBootstrapJobReconciler *jobs.SnubaBootstrapJobReconciler
+	SentryMigrationJobReconciler *jobs.SentryMigrationJobReconciler
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -109,6 +117,35 @@ func (r *SentryClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 	r.IngressReconciler = &components.IngressReconciler{
 		Client: r.Client,
 		Scheme: r.Scheme,
+	}
+
+	// Initialize job reconcilers
+	r.PostgresInitJobReconciler = &jobs.PostgresInitJobReconciler{
+		BaseJobReconciler: jobs.BaseJobReconciler{
+			Client: r.Client,
+			Scheme: r.Scheme,
+		},
+	}
+
+	r.KafkaInitJobReconciler = &jobs.KafkaInitJobReconciler{
+		BaseJobReconciler: jobs.BaseJobReconciler{
+			Client: r.Client,
+			Scheme: r.Scheme,
+		},
+	}
+
+	r.SnubaBootstrapJobReconciler = &jobs.SnubaBootstrapJobReconciler{
+		BaseJobReconciler: jobs.BaseJobReconciler{
+			Client: r.Client,
+			Scheme: r.Scheme,
+		},
+	}
+
+	r.SentryMigrationJobReconciler = &jobs.SentryMigrationJobReconciler{
+		BaseJobReconciler: jobs.BaseJobReconciler{
+			Client: r.Client,
+			Scheme: r.Scheme,
+		},
 	}
 
 	return ctrl.NewControllerManagedBy(mgr).
@@ -234,98 +271,184 @@ func (r *SentryClusterReconciler) reconcileSentry(ctx context.Context, sentryClu
 	log := log.FromContext(ctx)
 	log.Info("Reconciling Sentry", "Name", sentryCluster.Name, "Namespace", sentryCluster.Namespace)
 
+	// Initialize component status if not already set
+	if sentryCluster.Status.ComponentStatus == (sentryv1alpha1.ComponentStatus{}) {
+		sentryCluster.Status.ComponentStatus = sentryv1alpha1.ComponentStatus{}
+	}
+
 	// Reconcile dependent components in order
 	// 1. Config (Secrets/ConfigMaps needed by others)
 	configResult, err := r.reconcileConfig(ctx, sentryCluster)
 	if err != nil {
+		r.updateComponentStatus(ctx, sentryCluster, "Config", false, err.Error())
 		return configResult, errors.Wrap(err, "failed to reconcile Config")
 	}
 	if configResult.Requeue {
 		return configResult, nil
 	}
+	r.updateComponentStatus(ctx, sentryCluster, "Config", true, "Config reconciled successfully")
 
 	// 2. Postgres
 	postgresResult, err := r.reconcilePostgres(ctx, sentryCluster)
 	if err != nil {
+		r.updateComponentStatus(ctx, sentryCluster, "Postgresql", false, err.Error())
 		return postgresResult, errors.Wrap(err, "failed to reconcile Postgres")
 	}
 	if postgresResult.Requeue {
 		return postgresResult, nil
 	}
+	r.updateComponentStatus(ctx, sentryCluster, "Postgresql", true, "PostgreSQL reconciled successfully")
+
+	// 2.1 Postgres Initialization Job
+	postgresInitResult, err := r.reconcilePostgresInitJob(ctx, sentryCluster)
+	if err != nil {
+		return postgresInitResult, errors.Wrap(err, "failed to reconcile Postgres initialization job")
+	}
+	if postgresInitResult.Requeue {
+		return postgresInitResult, nil
+	}
 
 	// 3. Redis
 	redisResult, err := r.reconcileRedis(ctx, sentryCluster)
 	if err != nil {
+		r.updateComponentStatus(ctx, sentryCluster, "Redis", false, err.Error())
 		return redisResult, errors.Wrap(err, "failed to reconcile Redis")
 	}
 	if redisResult.Requeue {
 		return redisResult, nil
 	}
+	r.updateComponentStatus(ctx, sentryCluster, "Redis", true, "Redis reconciled successfully")
 
 	// 4. Kafka
 	kafkaResult, err := r.reconcileKafka(ctx, sentryCluster)
 	if err != nil {
+		r.updateComponentStatus(ctx, sentryCluster, "Kafka", false, err.Error())
 		return kafkaResult, errors.Wrap(err, "failed to reconcile Kafka")
 	}
 	if kafkaResult.Requeue {
 		return kafkaResult, nil
 	}
+	r.updateComponentStatus(ctx, sentryCluster, "Kafka", true, "Kafka reconciled successfully")
+
+	// 4.1 Kafka Initialization Job
+	kafkaInitResult, err := r.reconcileKafkaInitJob(ctx, sentryCluster)
+	if err != nil {
+		return kafkaInitResult, errors.Wrap(err, "failed to reconcile Kafka initialization job")
+	}
+	if kafkaInitResult.Requeue {
+		return kafkaInitResult, nil
+	}
 
 	// 5. ClickHouse
 	clickhouseResult, err := r.reconcileClickHouse(ctx, sentryCluster)
 	if err != nil {
+		r.updateComponentStatus(ctx, sentryCluster, "ClickHouse", false, err.Error())
 		return clickhouseResult, errors.Wrap(err, "failed to reconcile ClickHouse")
 	}
 	if clickhouseResult.Requeue {
 		return clickhouseResult, nil
 	}
+	r.updateComponentStatus(ctx, sentryCluster, "ClickHouse", true, "ClickHouse reconciled successfully")
 
-	// 6. Snuba
+	// 6. Snuba - depends on Kafka and ClickHouse
+	if !r.areComponentsReady(sentryCluster, []string{"Kafka", "ClickHouse"}) {
+		log.Info("Waiting for Kafka and ClickHouse to be ready before reconciling Snuba")
+		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+	}
+	
 	snubaResult, err := r.reconcileSnuba(ctx, sentryCluster)
 	if err != nil {
+		r.updateComponentStatus(ctx, sentryCluster, "Snuba", false, err.Error())
 		return snubaResult, errors.Wrap(err, "failed to reconcile Snuba")
 	}
 	if snubaResult.Requeue {
 		return snubaResult, nil
 	}
+	r.updateComponentStatus(ctx, sentryCluster, "Snuba", true, "Snuba reconciled successfully")
 
-	// 7. Relay
-	relayResult, err := r.reconcileRelay(ctx, sentryCluster)
+	// 6.1 Snuba Bootstrap Job
+	snubaBootstrapResult, err := r.reconcileSnubaBootstrapJob(ctx, sentryCluster)
 	if err != nil {
-		return relayResult, errors.Wrap(err, "failed to reconcile Relay")
+		return snubaBootstrapResult, errors.Wrap(err, "failed to reconcile Snuba bootstrap job")
 	}
-	if relayResult.Requeue {
-		return relayResult, nil
+	if snubaBootstrapResult.Requeue {
+		return snubaBootstrapResult, nil
 	}
 
-	// 8. Symbolicator
+	// 7. Symbolicator
 	symbolicatorResult, err := r.reconcileSymbolicator(ctx, sentryCluster)
 	if err != nil {
+		r.updateComponentStatus(ctx, sentryCluster, "Symbolicator", false, err.Error())
 		return symbolicatorResult, errors.Wrap(err, "failed to reconcile Symbolicator")
 	}
 	if symbolicatorResult.Requeue {
 		return symbolicatorResult, nil
 	}
+	r.updateComponentStatus(ctx, sentryCluster, "Symbolicator", true, "Symbolicator reconciled successfully")
 
-	// 9. Sentry Worker
+	// 8. Sentry Worker - depends on Postgres, Redis, Kafka, and Snuba
+	if !r.areComponentsReady(sentryCluster, []string{"Postgresql", "Redis", "Kafka", "Snuba"}) {
+		log.Info("Waiting for Postgres, Redis, Kafka, and Snuba to be ready before reconciling Sentry Worker")
+		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+	}
+	
 	workerResult, err := r.reconcileSentryWorker(ctx, sentryCluster)
 	if err != nil {
+		r.updateComponentStatus(ctx, sentryCluster, "Worker", false, err.Error())
 		return workerResult, errors.Wrap(err, "failed to reconcile Sentry Worker")
 	}
 	if workerResult.Requeue {
 		return workerResult, nil
 	}
+	r.updateComponentStatus(ctx, sentryCluster, "Worker", true, "Sentry Worker reconciled successfully")
 
-	// 10. Sentry Web
+	// 9. Sentry Web - depends on Postgres, Redis, Kafka, Snuba, and Symbolicator
+	if !r.areComponentsReady(sentryCluster, []string{"Postgresql", "Redis", "Kafka", "Snuba", "Symbolicator"}) {
+		log.Info("Waiting for Postgres, Redis, Kafka, Snuba, and Symbolicator to be ready before reconciling Sentry Web")
+		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+	}
+	
 	webResult, err := r.reconcileSentryWeb(ctx, sentryCluster)
 	if err != nil {
+		r.updateComponentStatus(ctx, sentryCluster, "Web", false, err.Error())
 		return webResult, errors.Wrap(err, "failed to reconcile Sentry Web")
 	}
 	if webResult.Requeue {
 		return webResult, nil
 	}
+	r.updateComponentStatus(ctx, sentryCluster, "Web", true, "Sentry Web reconciled successfully")
 
-	// 11. Ingress
+	// 9.1 Sentry Migration Job
+	sentryMigrationResult, err := r.reconcileSentryMigrationJob(ctx, sentryCluster)
+	if err != nil {
+		return sentryMigrationResult, errors.Wrap(err, "failed to reconcile Sentry migration job")
+	}
+	if sentryMigrationResult.Requeue {
+		return sentryMigrationResult, nil
+	}
+
+	// 10. Relay - depends on Sentry Web
+	if !r.areComponentsReady(sentryCluster, []string{"Web"}) {
+		log.Info("Waiting for Sentry Web to be ready before reconciling Relay")
+		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+	}
+	
+	relayResult, err := r.reconcileRelay(ctx, sentryCluster)
+	if err != nil {
+		r.updateComponentStatus(ctx, sentryCluster, "Relay", false, err.Error())
+		return relayResult, errors.Wrap(err, "failed to reconcile Relay")
+	}
+	if relayResult.Requeue {
+		return relayResult, nil
+	}
+	r.updateComponentStatus(ctx, sentryCluster, "Relay", true, "Relay reconciled successfully")
+
+	// 11. Ingress - depends on Sentry Web
+	if !r.areComponentsReady(sentryCluster, []string{"Web"}) {
+		log.Info("Waiting for Sentry Web to be ready before reconciling Ingress")
+		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+	}
+	
 	ingressResult, err := r.reconcileIngress(ctx, sentryCluster)
 	if err != nil {
 		return ingressResult, errors.Wrap(err, "failed to reconcile Ingress")
@@ -341,6 +464,97 @@ func (r *SentryClusterReconciler) reconcileSentry(ctx context.Context, sentryClu
 
 	log.Info("Finished reconciling Sentry components", "Name", sentryCluster.Name)
 	return ctrl.Result{}, nil
+}
+
+// updateComponentStatus updates the status of a specific component in the SentryCluster status
+func (r *SentryClusterReconciler) updateComponentStatus(ctx context.Context, sentryCluster *sentryv1alpha1.SentryCluster, componentName string, ready bool, message string) {
+	log := log.FromContext(ctx)
+	
+	// Update the component status
+	switch componentName {
+	case "Config":
+		// Config doesn't have a dedicated status field, so we just log it
+		log.Info("Config status updated", "Ready", ready, "Message", message)
+	case "Postgresql":
+		sentryCluster.Status.ComponentStatus.Postgresql.Ready = ready
+		sentryCluster.Status.ComponentStatus.Postgresql.Message = message
+	case "Redis":
+		sentryCluster.Status.ComponentStatus.Redis.Ready = ready
+		sentryCluster.Status.ComponentStatus.Redis.Message = message
+	case "Kafka":
+		sentryCluster.Status.ComponentStatus.Kafka.Ready = ready
+		sentryCluster.Status.ComponentStatus.Kafka.Message = message
+	case "ClickHouse":
+		sentryCluster.Status.ComponentStatus.ClickHouse.Ready = ready
+		sentryCluster.Status.ComponentStatus.ClickHouse.Message = message
+	case "Snuba":
+		sentryCluster.Status.ComponentStatus.Snuba.Ready = ready
+		sentryCluster.Status.ComponentStatus.Snuba.Message = message
+	case "Symbolicator":
+		sentryCluster.Status.ComponentStatus.Symbolicator.Ready = ready
+		sentryCluster.Status.ComponentStatus.Symbolicator.Message = message
+	case "Worker":
+		sentryCluster.Status.ComponentStatus.Worker.Ready = ready
+		sentryCluster.Status.ComponentStatus.Worker.Message = message
+	case "Web":
+		sentryCluster.Status.ComponentStatus.Web.Ready = ready
+		sentryCluster.Status.ComponentStatus.Web.Message = message
+	case "Relay":
+		sentryCluster.Status.ComponentStatus.Relay.Ready = ready
+		sentryCluster.Status.ComponentStatus.Relay.Message = message
+	default:
+		log.Info("Unknown component", "Component", componentName)
+	}
+	
+	// Update the status
+	if err := r.Status().Update(ctx, sentryCluster); err != nil {
+		log.Error(err, "Failed to update component status", "Component", componentName)
+	}
+}
+
+// areComponentsReady checks if all the specified components are ready
+func (r *SentryClusterReconciler) areComponentsReady(sentryCluster *sentryv1alpha1.SentryCluster, componentNames []string) bool {
+	for _, name := range componentNames {
+		switch name {
+		case "Postgresql":
+			if !sentryCluster.Status.ComponentStatus.Postgresql.Ready {
+				return false
+			}
+		case "Redis":
+			if !sentryCluster.Status.ComponentStatus.Redis.Ready {
+				return false
+			}
+		case "Kafka":
+			if !sentryCluster.Status.ComponentStatus.Kafka.Ready {
+				return false
+			}
+		case "ClickHouse":
+			if !sentryCluster.Status.ComponentStatus.ClickHouse.Ready {
+				return false
+			}
+		case "Snuba":
+			if !sentryCluster.Status.ComponentStatus.Snuba.Ready {
+				return false
+			}
+		case "Symbolicator":
+			if !sentryCluster.Status.ComponentStatus.Symbolicator.Ready {
+				return false
+			}
+		case "Worker":
+			if !sentryCluster.Status.ComponentStatus.Worker.Ready {
+				return false
+			}
+		case "Web":
+			if !sentryCluster.Status.ComponentStatus.Web.Ready {
+				return false
+			}
+		case "Relay":
+			if !sentryCluster.Status.ComponentStatus.Relay.Ready {
+				return false
+			}
+		}
+	}
+	return true
 }
 
 // updateStatus updates the status of the SentryCluster resource
@@ -485,4 +699,24 @@ func (r *SentryClusterReconciler) reconcileIngress(ctx context.Context, sentryCl
 // reconcileSnuba handles the Sentry Snuba deployment for Sentry.
 func (r *SentryClusterReconciler) reconcileSnuba(ctx context.Context, sentryCluster *sentryv1alpha1.SentryCluster) (ctrl.Result, error) {
 	return r.SnubaReconciler.Reconcile(ctx, sentryCluster)
+}
+
+// reconcilePostgresInitJob handles the PostgreSQL initialization job.
+func (r *SentryClusterReconciler) reconcilePostgresInitJob(ctx context.Context, sentryCluster *sentryv1alpha1.SentryCluster) (ctrl.Result, error) {
+	return r.PostgresInitJobReconciler.Reconcile(ctx, sentryCluster)
+}
+
+// reconcileKafkaInitJob handles the Kafka initialization job.
+func (r *SentryClusterReconciler) reconcileKafkaInitJob(ctx context.Context, sentryCluster *sentryv1alpha1.SentryCluster) (ctrl.Result, error) {
+	return r.KafkaInitJobReconciler.Reconcile(ctx, sentryCluster)
+}
+
+// reconcileSnubaBootstrapJob handles the Snuba bootstrap job.
+func (r *SentryClusterReconciler) reconcileSnubaBootstrapJob(ctx context.Context, sentryCluster *sentryv1alpha1.SentryCluster) (ctrl.Result, error) {
+	return r.SnubaBootstrapJobReconciler.Reconcile(ctx, sentryCluster)
+}
+
+// reconcileSentryMigrationJob handles the Sentry migration job.
+func (r *SentryClusterReconciler) reconcileSentryMigrationJob(ctx context.Context, sentryCluster *sentryv1alpha1.SentryCluster) (ctrl.Result, error) {
+	return r.SentryMigrationJobReconciler.Reconcile(ctx, sentryCluster)
 }

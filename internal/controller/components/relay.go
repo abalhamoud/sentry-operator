@@ -48,6 +48,12 @@ type RelayReconciler struct {
 func (r *RelayReconciler) Reconcile(ctx context.Context, sentryCluster *sentryv1alpha1.SentryCluster) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 	log.Info("Reconciling Relay", "SentryCluster", sentryCluster.Name)
+	
+	// Check if dependencies are ready
+	if !r.areDependenciesReady(sentryCluster) {
+		log.Info("Dependencies for Relay are not ready yet, requeuing")
+		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+	}
 
 	// 1. Reconcile ConfigMap for Relay configuration
 	configMapName := sentryCluster.Name + "-relay-config"
@@ -319,4 +325,30 @@ func (r *RelayReconciler) defineRelayDeployment(sentryCluster *sentryv1alpha1.Se
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on Relay Deployment")
 	}
 	return deployment
+}
+
+// areDependenciesReady checks if all dependencies for Relay are ready
+func (r *RelayReconciler) areDependenciesReady(sentryCluster *sentryv1alpha1.SentryCluster) bool {
+	// Relay primarily depends on Sentry Web
+	if !sentryCluster.Status.ComponentStatus.Web.Ready {
+		return false
+	}
+	
+	// Relay also needs Redis for caching
+	if !sentryCluster.Status.ComponentStatus.Redis.Ready {
+		return false
+	}
+	
+	// If Kafka is configured, Relay needs it for event streaming
+	if sentryCluster.Spec.Persistence.Kafka != nil && !sentryCluster.Status.ComponentStatus.Kafka.Ready {
+		return false
+	}
+	
+	// Check if Sentry migration job has completed
+	condition := sentryCluster.Status.GetCondition("SentryMigrated")
+	if condition == nil || condition.Status != metav1.ConditionTrue {
+		return false
+	}
+	
+	return true
 }

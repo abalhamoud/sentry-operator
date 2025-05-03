@@ -47,6 +47,12 @@ type SentryWorkerReconciler struct {
 func (r *SentryWorkerReconciler) Reconcile(ctx context.Context, sentryCluster *sentryv1alpha1.SentryCluster) (ctrl.Result, error) {
 	log := log.FromContext(ctx)
 	log.Info("Reconciling Sentry Worker", "SentryCluster", sentryCluster.Name)
+	
+	// Check if dependencies are ready
+	if !r.areDependenciesReady(sentryCluster) {
+		log.Info("Dependencies for Sentry Worker are not ready yet, requeuing")
+		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
+	}
 
 	// Reconcile Deployment
 	deploymentName := sentryCluster.Name + "-worker"
@@ -308,4 +314,35 @@ func (r *SentryWorkerReconciler) defineSentryWorkerDeployment(sentryCluster *sen
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on Sentry Worker Deployment")
 	}
 	return deployment
+}
+
+// areDependenciesReady checks if all dependencies for Sentry Worker are ready
+func (r *SentryWorkerReconciler) areDependenciesReady(sentryCluster *sentryv1alpha1.SentryCluster) bool {
+	// Check if Postgres is ready
+	if !sentryCluster.Status.ComponentStatus.Postgresql.Ready {
+		return false
+	}
+	
+	// Check if Redis is ready
+	if !sentryCluster.Status.ComponentStatus.Redis.Ready {
+		return false
+	}
+	
+	// Check if Kafka is ready (if used)
+	if sentryCluster.Spec.Persistence.Kafka != nil && !sentryCluster.Status.ComponentStatus.Kafka.Ready {
+		return false
+	}
+	
+	// Check if Snuba is ready (if ClickHouse is configured)
+	if sentryCluster.Spec.Persistence.ClickHouse != nil && !sentryCluster.Status.ComponentStatus.Snuba.Ready {
+		return false
+	}
+	
+	// Check if Sentry migration job has completed
+	condition := sentryCluster.Status.GetCondition("SentryMigrated")
+	if condition == nil || condition.Status != metav1.ConditionTrue {
+		return false
+	}
+	
+	return true
 }

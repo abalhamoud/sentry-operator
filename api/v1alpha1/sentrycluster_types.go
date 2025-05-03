@@ -615,3 +615,27 @@ type SentryClusterList struct {
 func init() {
 	SchemeBuilder.Register(&SentryCluster{}, &SentryClusterList{})
 }
+
+// SetCondition sets a condition in the SentryCluster status
+func (s *SentryClusterStatus) SetCondition(condition metav1.Condition) {
+	// Find the condition
+	for i, c := range s.Conditions {
+		if c.Type == condition.Type {
+			// Update the condition
+			s.Conditions[i] = condition
+			return
+		}
+	}
+	// Condition not found, add it
+	s.Conditions = append(s.Conditions, condition)
+}
+
+// GetCondition gets a condition from the SentryCluster status
+func (s *SentryClusterStatus) GetCondition(conditionType string) *metav1.Condition {
+	for _, c := range s.Conditions {
+		if c.Type == conditionType {
+			return &c
+		}
+	}
+	return nil
+}

@@ -1,9 +1,152 @@
 apiVersion: sentry.sentry.io/v1alpha1
 kind: SentryCluster
 metadata:
+  name: sentrycluster-sample
   labels:
     app.kubernetes.io/name: sentry-operator
     app.kubernetes.io/managed-by: kustomize
-  name: sentrycluster-sample
 spec:
-  # TODO(user): Add fields here
+  # Sentry version to deploy
+  version: "24.5.0"
+  
+  # Resource requests and limits for Sentry components
+  resources:
+    web:
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+    worker:
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+    postgres:
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+    redis:
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+    kafka:
+      requests:
+        cpu: "500m"
+        memory: "1Gi"
+      limits:
+        cpu: "1000m"
+        memory: "2Gi"
+    clickhouse:
+      requests:
+        cpu: "1000m"
+        memory: "2Gi"
+      limits:
+        cpu: "2000m"
+        memory: "4Gi"
+    snuba:
+      requests:
+        cpu: "500m"
+        memory: "512Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1Gi"
+    relay:
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+    symbolicator:
+      requests:
+        cpu: "200m"
+        memory: "256Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+  
+  # Persistence configuration for stateful components
+  persistence:
+    # PostgreSQL configuration
+    postgresql:
+      # Use managed PostgreSQL (deployed by the operator)
+      storageClass: "standard"
+      size: "10Gi"
+      # Uncomment to use external PostgreSQL
+      # external:
+      #   secretName: "external-postgres-secret"
+    
+    # Redis configuration
+    redis:
+      # Use managed Redis (deployed by the operator)
+      storageClass: "standard"
+      size: "5Gi"
+      # Uncomment to use external Redis
+      # external:
+      #   secretName: "external-redis-secret"
+    
+    # Kafka configuration
+    kafka:
+      # Use managed Kafka (deployed by the operator)
+      storageClass: "standard"
+      size: "10Gi"
+      # Uncomment to use external Kafka
+      # external:
+      #   secretName: "external-kafka-secret"
+    
+    # ClickHouse configuration
+    clickhouse:
+      # Use managed ClickHouse (deployed by the operator)
+      storageClass: "standard"
+      size: "20Gi"
+      # Uncomment to use external ClickHouse
+      # external:
+      #   secretName: "external-clickhouse-secret"
+  
+  # Ingress configuration for exposing Sentry
+  ingress:
+    enabled: true
+    host: "sentry.example.com"
+    path: "/"
+    # TLS configuration
+    tls:
+      enabled: true
+      secretName: "sentry-tls-secret"
+  
+  # Sentry-specific configuration
+  config:
+    # Email configuration
+    email:
+      host: "smtp.example.com"
+      port: 587
+      user: "sentry@example.com"
+      password: "your-smtp-password"
+      from: "sentry@example.com"
+    
+    # Authentication configuration
+    auth:
+      allowRegistration: false
+      requireEmailVerification: true
+    
+    # Feature flags
+    features:
+      organizations:
+        default: true
+      projects:
+        default: true
+  
+  # Replica count for scalable components
+  replica:
+    web: 2
+    worker: 2
+    relay: 2
