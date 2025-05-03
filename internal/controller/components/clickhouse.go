@@ -94,7 +94,7 @@ func (r *ClickHouseReconciler) Reconcile(ctx context.Context, sentryCluster *sen
 	// --- Assuming Managed ClickHouse ---
 
 	// 1. Reconcile PVC
-	if clickHousePersistence.Managed != nil && clickHousePersistence.Managed.Size != "" {
+	if clickHousePersistence.Managed != nil && clickHousePersistence.Managed.Storage.Size != "" {
 		pvcName := sentryCluster.Name + "-clickhouse-pvc"
 		pvc := &corev1.PersistentVolumeClaim{}
 		err := r.Get(ctx, types.NamespacedName{Name: pvcName, Namespace: sentryCluster.Namespace}, pvc)
@@ -198,7 +198,7 @@ func (r *ClickHouseReconciler) defineClickHousePVC(sentryCluster *sentryv1alpha1
 	labels := GetComponentLabels(sentryCluster, "clickhouse")
 	
 	// Parse the storage size
-	storageSize := resource.MustParse(sentryCluster.Spec.Persistence.ClickHouse.Managed.Size)
+	storageSize := resource.MustParse(sentryCluster.Spec.Persistence.ClickHouse.Managed.Storage.Size)
 	
 	// Create the PVC
 	pvc := &corev1.PersistentVolumeClaim{
@@ -214,12 +214,12 @@ func (r *ClickHouseReconciler) defineClickHousePVC(sentryCluster *sentryv1alpha1
 					corev1.ResourceStorage: storageSize,
 				},
 			},
-			StorageClassName: &sentryCluster.Spec.Persistence.ClickHouse.Managed.StorageClass,
+			StorageClassName: &sentryCluster.Spec.Persistence.ClickHouse.Managed.Storage.StorageClass,
 		},
 	}
 	
 	// If StorageClass is empty, set it to nil to use the default StorageClass
-	if sentryCluster.Spec.Persistence.ClickHouse.Managed.StorageClass == "" {
+	if sentryCluster.Spec.Persistence.ClickHouse.Managed.Storage.StorageClass == "" {
 		pvc.Spec.StorageClassName = nil
 	}
 	

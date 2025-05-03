@@ -220,13 +220,14 @@ system.url-prefix: '%s'
 
 	// Add performance settings if provided
 	if sentryCluster.Spec.Config.Performance != nil && sentryCluster.Spec.Config.Performance.Enabled {
-		if sentryCluster.Spec.Config.Performance.SampleRate > 0 {
-			configYmlContent += fmt.Sprintf("performance.sample-rate: %f\n", sentryCluster.Spec.Config.Performance.SampleRate)
-		}
+		log.info("Performance is configured but not used... ")
+		// if sentryCluster.Spec.Config.Performance.SampleRate > 0 {
+		// 	configYmlContent += fmt.Sprintf("performance.sample-rate: %f\n", sentryCluster.Spec.Config.Performance.SampleRate)
+		// }
 		
-		if sentryCluster.Spec.Config.Performance.TracesSampleRate > 0 {
-			configYmlContent += fmt.Sprintf("performance.traces-sample-rate: %f\n", sentryCluster.Spec.Config.Performance.TracesSampleRate)
-		}
+		// if sentryCluster.Spec.Config.Performance.TracesSampleRate > 0 {
+		// 	configYmlContent += fmt.Sprintf("performance.traces-sample-rate: %f\n", sentryCluster.Spec.Config.Performance.TracesSampleRate)
+		// }
 	}
 
 	// Basic sentry.conf.py content

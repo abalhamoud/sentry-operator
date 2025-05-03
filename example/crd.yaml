@@ -1,0 +1,8 @@
+apiVersion: sentry.io/v1alpha1
+kind: SentryCluster
+metadata:
+  name: my-sentry
+spec:
+  version: "24.4.0"
+  web:
+    replicas: 1

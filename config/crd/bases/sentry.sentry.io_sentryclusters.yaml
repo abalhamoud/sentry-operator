@@ -42,52 +42,864 @@ spec:
               config:
                 description: Config defines Sentry-specific settings.
                 properties:
+                  auth:
+                    description: Auth defines authentication settings for Sentry.
+                    properties:
+                      allowRegistration:
+                        description: AllowRegistration determines if new users can
+                          register.
+                        type: boolean
+                      ldap:
+                        description: LDAP defines LDAP authentication configuration.
+                        properties:
+                          bindDn:
+                            description: BindDN is the LDAP bind DN.
+                            type: string
+                          enabled:
+                            description: Enabled indicates whether LDAP authentication
+                              is enabled.
+                            type: boolean
+                          secretName:
+                            description: SecretName is the name of the Secret containing
+                              the LDAP bind password.
+                            type: string
+                          serverUri:
+                            description: ServerURI is the LDAP server URI.
+                            type: string
+                          userSearchBase:
+                            description: UserSearchBase is the LDAP search base for
+                              users.
+                            type: string
+                          userSearchFilter:
+                            description: UserSearchFilter is the LDAP search filter
+                              for users.
+                            type: string
+                        required:
+                        - enabled
+                        type: object
+                      requireEmailVerification:
+                        description: RequireEmailVerification requires email verification
+                          before login.
+                        type: boolean
+                      sso:
+                        description: SSO defines Single Sign-On configuration.
+                        properties:
+                          enabled:
+                            description: Enabled indicates whether SSO is enabled.
+                            type: boolean
+                          provider:
+                            description: Provider is the SSO provider (e.g., "google",
+                              "github", "okta").
+                            type: string
+                          secretName:
+                            description: SecretName is the name of the Secret containing
+                              SSO credentials.
+                            type: string
+                        required:
+                        - enabled
+                        type: object
+                    type: object
+                  dataRetention:
+                    description: DataRetention defines how long Sentry keeps event
+                      data.
+                    properties:
+                      eventRetentionDays:
+                        description: EventRetentionDays defines how many days to keep
+                          event data.
+                        format: int32
+                        type: integer
+                      issueRetentionDays:
+                        description: IssueRetentionDays defines how many days to keep
+                          issue data.
+                        format: int32
+                        type: integer
+                    type: object
+                  email:
+                    description: Email defines the email configuration for Sentry.
+                    properties:
+                      backend:
+                        description: Backend is the email backend to use (e.g., "smtp",
+                          "console").
+                        type: string
+                      from:
+                        description: From is the email address to send from.
+                        type: string
+                      smtp:
+                        description: SMTP defines SMTP server settings when using
+                          the SMTP backend.
+                        properties:
+                          host:
+                            description: Host is the SMTP server hostname.
+                            type: string
+                          port:
+                            description: Port is the SMTP server port.
+                            format: int32
+                            type: integer
+                          secretName:
+                            description: SecretName is the name of the Secret containing
+                              the SMTP password.
+                            type: string
+                          useTLS:
+                            description: UseTLS indicates whether to use TLS for SMTP
+                              connections.
+                            type: boolean
+                          username:
+                            description: Username for SMTP authentication.
+                            type: string
+                        required:
+                        - host
+                        - port
+                        type: object
+                    type: object
+                  features:
+                    additionalProperties:
+                      type: boolean
+                    description: Features defines feature flags for Sentry.
+                    type: object
+                  integrations:
+                    description: Integrations defines settings for external service
+                      integrations.
+                    properties:
+                      github:
+                        description: GitHub defines GitHub integration settings.
+                        properties:
+                          enabled:
+                            description: Enabled indicates whether GitHub integration
+                              is enabled.
+                            type: boolean
+                          secretName:
+                            description: SecretName is the name of the Secret containing
+                              GitHub credentials.
+                            type: string
+                        required:
+                        - enabled
+                        type: object
+                      jira:
+                        description: Jira defines Jira integration settings.
+                        properties:
+                          enabled:
+                            description: Enabled indicates whether Jira integration
+                              is enabled.
+                            type: boolean
+                          secretName:
+                            description: SecretName is the name of the Secret containing
+                              Jira credentials.
+                            type: string
+                        required:
+                        - enabled
+                        type: object
+                      slack:
+                        description: Slack defines Slack integration settings.
+                        properties:
+                          enabled:
+                            description: Enabled indicates whether Slack integration
+                              is enabled.
+                            type: boolean
+                          secretName:
+                            description: SecretName is the name of the Secret containing
+                              Slack credentials.
+                            type: string
+                        required:
+                        - enabled
+                        type: object
+                    type: object
+                  performance:
+                    description: Performance defines settings for performance monitoring.
+                    properties:
+                      enabled:
+                        description: Enabled indicates whether performance monitoring
+                          is enabled.
+                        type: boolean
+                      sampleRate:
+                        description: SampleRate defines the sampling rate for performance
+                          data (0.0-1.0).
+                        type: string
+                      tracesSampleRate:
+                        description: TracesSampleRate defines the sampling rate for
+                          traces (0.0-1.0).
+                        type: string
+                    required:
+                    - enabled
+                    type: object
+                  privacy:
+                    description: Privacy defines privacy-related settings.
+                    properties:
+                      excludedIps:
+                        description: ExcludedIPs is a list of IP addresses to exclude
+                          from event data.
+                        items:
+                          type: string
+                        type: array
+                      ipAnonymization:
+                        description: IPAnonymization determines whether to anonymize
+                          IP addresses.
+                        type: boolean
+                      scrubData:
+                        description: ScrubData determines whether to scrub potentially
+                          sensitive data.
+                        type: boolean
+                      scrubDefaults:
+                        description: ScrubDefaults determines whether to scrub default
+                          fields.
+                        type: boolean
+                      scrubFields:
+                        description: ScrubFields is a list of additional fields to
+                          scrub.
+                        items:
+                          type: string
+                        type: array
+                    type: object
+                  rateLimiting:
+                    description: RateLimiting defines rate limiting settings for Sentry.
+                    properties:
+                      errorsPerMinute:
+                        description: ErrorsPerMinute limits the number of error events
+                          per minute.
+                        format: int32
+                        type: integer
+                      eventsPerMinute:
+                        description: EventsPerMinute limits the number of events accepted
+                          per minute.
+                        format: int32
+                        type: integer
+                      transactionsPerMinute:
+                        description: TransactionsPerMinute limits the number of transaction
+                          events per minute.
+                        format: int32
+                        type: integer
+                    type: object
                   secretKey:
+                    description: |-
+                      SecretKey is used for cryptographic signing in Sentry.
+                      If not provided, a random key will be generated.
                     type: string
                 type: object
-              foo:
-                description: Foo is an example field of SentryCluster. Edit sentrycluster_types.go
-                  to remove/update
-                type: string
               ingress:
                 description: Ingress defines the options for exposing Sentry to external
                   traffic.
                 properties:
+                  annotations:
+                    additionalProperties:
+                      type: string
+                    description: Annotations are additional annotations to add to
+                      the Ingress resource.
+                    type: object
+                  className:
+                    description: ClassName is the IngressClass name for Kubernetes
+                      1.18+ clusters.
+                    type: string
+                  enabled:
+                    description: Enabled indicates whether to create an Ingress resource.
+                    type: boolean
                   host:
+                    description: Host is the hostname for Sentry (e.g., "sentry.example.com").
                     type: string
+                  path:
+                    description: Path is the URL path prefix for Sentry (e.g., "/sentry").
+                    type: string
+                  pathType:
+                    description: PathType is the PathType for Sentry (e.g., "ImplementationSpecific").
+                    type: string
+                  tls:
+                    description: TLS defines TLS configuration for the Ingress.
+                    properties:
+                      certManager:
+                        description: CertManager indicates whether to use cert-manager
+                          for certificate management.
+                        type: boolean
+                      enabled:
+                        description: Enabled indicates whether TLS is enabled.
+                        type: boolean
+                      issuer:
+                        description: Issuer is the cert-manager Issuer to use when
+                          CertManager is enabled.
+                        type: string
+                      issuerKind:
+                        description: IssuerKind is the kind of cert-manager Issuer
+                          (e.g., "Issuer", "ClusterIssuer").
+                        type: string
+                      secretName:
+                        description: |-
+                          SecretName is the name of the Secret containing the TLS certificate and key.
+                          If not provided, a Secret will be created with a self-signed certificate.
+                        type: string
+                    required:
+                    - enabled
+                    type: object
                   type:
+                    description: Type specifies the Ingress controller type (e.g.,
+                      "nginx", "traefik", "openshift-route").
                     type: string
+                required:
+                - enabled
+                - host
+                - pathType
                 type: object
               persistence:
                 description: Persistence defines the storage requirements for PostgreSQL
                   and Redis.
                 properties:
-                  postgresql:
-                    description: PersistentVolumeClaim defines the StorageClass and
-                      size of the persistent volumes.
+                  clickhouse:
+                    description: ClickHouse is used for analytics and event storage.
                     properties:
-                      size:
-                        type: string
-                      storageClass:
-                        type: string
+                      external:
+                        description: |-
+                          External defines the configuration for connecting to an external ClickHouse cluster.
+                          If set, the operator will use the connection details from the specified Secret.
+                        properties:
+                          secretName:
+                            description: |-
+                              SecretName is the name of the Secret containing ClickHouse connection details.
+                              Expected keys: "host", "port", "user", "password", "database"
+                            type: string
+                        required:
+                        - secretName
+                        type: object
+                      managed:
+                        description: |-
+                          Managed defines the configuration for a managed ClickHouse instance.
+                          If set, the operator will create and manage the ClickHouse cluster.
+                        properties:
+                          config:
+                            additionalProperties:
+                              type: string
+                            description: Config defines ClickHouse configuration.
+                            type: object
+                          replicas:
+                            description: Replicas is the number of ClickHouse nodes
+                              to deploy.
+                            format: int32
+                            type: integer
+                          resources:
+                            description: Resources defines the CPU/memory requests
+                              and limits for ClickHouse nodes.
+                            properties:
+                              claims:
+                                description: |-
+                                  Claims lists the names of resources, defined in spec.resourceClaims,
+                                  that are used by this container.
+
+                                  This is an alpha field and requires enabling the
+                                  DynamicResourceAllocation feature gate.
+
+                                  This field is immutable. It can only be set for containers.
+                                items:
+                                  description: ResourceClaim references one entry
+                                    in PodSpec.ResourceClaims.
+                                  properties:
+                                    name:
+                                      description: |-
+                                        Name must match the name of one entry in pod.spec.resourceClaims of
+                                        the Pod where this field is used. It makes that resource available
+                                        inside a container.
+                                      type: string
+                                    request:
+                                      description: |-
+                                        Request is the name chosen for a request in the referenced claim.
+                                        If empty, everything from the claim is made available, otherwise
+                                        only the result of this request.
+                                      type: string
+                                  required:
+                                  - name
+                                  type: object
+                                type: array
+                                x-kubernetes-list-map-keys:
+                                - name
+                                x-kubernetes-list-type: map
+                              limits:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: |-
+                                  Limits describes the maximum amount of compute resources allowed.
+                                  More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                type: object
+                              requests:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: |-
+                                  Requests describes the minimum amount of compute resources required.
+                                  If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                  otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                  More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                type: object
+                            type: object
+                          storage:
+                            description: Storage defines the storage configuration
+                              for ClickHouse nodes.
+                            properties:
+                              size:
+                                description: Size is the requested size of the persistent
+                                  volume (e.g., "10Gi").
+                                type: string
+                              storageClass:
+                                description: StorageClass is the name of the StorageClass
+                                  to use for the PVC.
+                                type: string
+                            required:
+                            - size
+                            type: object
+                          version:
+                            description: Version is the ClickHouse version to deploy.
+                            type: string
+                        type: object
+                    type: object
+                  kafka:
+                    description: Kafka is used for event streaming in Sentry's processing
+                      pipeline.
+                    properties:
+                      external:
+                        description: |-
+                          External defines the configuration for connecting to an external Kafka cluster.
+                          If set, the operator will use the connection details from the specified Secret.
+                        properties:
+                          secretName:
+                            description: |-
+                              SecretName is the name of the Secret containing Kafka connection details.
+                              Expected keys: "bootstrap.servers", "sasl.username" (optional), "sasl.password" (optional)
+                            type: string
+                          topics:
+                            description: Topics is a list of topics that Sentry will
+                              use.
+                            items:
+                              type: string
+                            type: array
+                        required:
+                        - secretName
+                        type: object
+                      managed:
+                        description: |-
+                          Managed defines the configuration for a managed Kafka instance.
+                          If set, the operator will create and manage the Kafka cluster.
+                        properties:
+                          config:
+                            additionalProperties:
+                              type: string
+                            description: Config defines Kafka broker configuration.
+                            type: object
+                          replicas:
+                            description: Replicas is the number of Kafka brokers to
+                              deploy.
+                            format: int32
+                            type: integer
+                          resources:
+                            description: Resources defines the CPU/memory requests
+                              and limits for Kafka brokers.
+                            properties:
+                              claims:
+                                description: |-
+                                  Claims lists the names of resources, defined in spec.resourceClaims,
+                                  that are used by this container.
+
+                                  This is an alpha field and requires enabling the
+                                  DynamicResourceAllocation feature gate.
+
+                                  This field is immutable. It can only be set for containers.
+                                items:
+                                  description: ResourceClaim references one entry
+                                    in PodSpec.ResourceClaims.
+                                  properties:
+                                    name:
+                                      description: |-
+                                        Name must match the name of one entry in pod.spec.resourceClaims of
+                                        the Pod where this field is used. It makes that resource available
+                                        inside a container.
+                                      type: string
+                                    request:
+                                      description: |-
+                                        Request is the name chosen for a request in the referenced claim.
+                                        If empty, everything from the claim is made available, otherwise
+                                        only the result of this request.
+                                      type: string
+                                  required:
+                                  - name
+                                  type: object
+                                type: array
+                                x-kubernetes-list-map-keys:
+                                - name
+                                x-kubernetes-list-type: map
+                              limits:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: |-
+                                  Limits describes the maximum amount of compute resources allowed.
+                                  More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                type: object
+                              requests:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: |-
+                                  Requests describes the minimum amount of compute resources required.
+                                  If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                  otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                  More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                type: object
+                            type: object
+                          storage:
+                            description: Storage defines the storage configuration
+                              for Kafka brokers.
+                            properties:
+                              size:
+                                description: Size is the requested size of the persistent
+                                  volume (e.g., "10Gi").
+                                type: string
+                              storageClass:
+                                description: StorageClass is the name of the StorageClass
+                                  to use for the PVC.
+                                type: string
+                            required:
+                            - size
+                            type: object
+                          version:
+                            description: Version is the Kafka version to deploy.
+                            type: string
+                        type: object
+                    type: object
+                  postgresql:
+                    description: Postgresql is the database used for Sentry's primary
+                      data storage.
+                    properties:
+                      external:
+                        description: |-
+                          External defines the configuration for connecting to an externally managed instance.
+                          If set, the operator will use the connection details from the specified Secret.
+                        properties:
+                          secretName:
+                            description: |-
+                              SecretName is the name of the Secret in the same namespace containing the connection details.
+                              For Redis, expected keys: "host", "port", "password" (optional).
+                              For Postgres, expected keys: "host", "port", "user", "password", "dbname".
+                            type: string
+                        required:
+                        - secretName
+                        type: object
+                      managed:
+                        description: |-
+                          Managed defines the configuration for a managed instance using a PersistentVolumeClaim.
+                          If set, the operator will create and manage the PVC, Service, and StatefulSet.
+                        properties:
+                          size:
+                            description: Size is the requested size of the persistent
+                              volume (e.g., "10Gi").
+                            type: string
+                          storageClass:
+                            description: StorageClass is the name of the StorageClass
+                              to use for the PVC.
+                            type: string
+                        required:
+                        - size
+                        type: object
                     type: object
                   redis:
-                    description: PersistentVolumeClaim defines the StorageClass and
-                      size of the persistent volumes.
+                    description: Redis is used for caching, rate limiting, and as
+                      a message broker.
                     properties:
-                      size:
-                        type: string
-                      storageClass:
-                        type: string
+                      external:
+                        description: |-
+                          External defines the configuration for connecting to an externally managed instance.
+                          If set, the operator will use the connection details from the specified Secret.
+                        properties:
+                          secretName:
+                            description: |-
+                              SecretName is the name of the Secret in the same namespace containing the connection details.
+                              For Redis, expected keys: "host", "port", "password" (optional).
+                              For Postgres, expected keys: "host", "port", "user", "password", "dbname".
+                            type: string
+                        required:
+                        - secretName
+                        type: object
+                      managed:
+                        description: |-
+                          Managed defines the configuration for a managed instance using a PersistentVolumeClaim.
+                          If set, the operator will create and manage the PVC, Service, and StatefulSet.
+                        properties:
+                          size:
+                            description: Size is the requested size of the persistent
+                              volume (e.g., "10Gi").
+                            type: string
+                          storageClass:
+                            description: StorageClass is the name of the StorageClass
+                              to use for the PVC.
+                            type: string
+                        required:
+                        - size
+                        type: object
+                    type: object
+                  snuba:
+                    description: Snuba is Sentry's event storage service that sits
+                      on top of ClickHouse.
+                    properties:
+                      config:
+                        additionalProperties:
+                          type: string
+                        description: Config defines Snuba-specific configuration.
+                        type: object
+                      replicas:
+                        description: Replicas is the number of Snuba consumer and
+                          API nodes to deploy.
+                        properties:
+                          api:
+                            description: API is the number of Snuba API nodes.
+                            format: int32
+                            type: integer
+                          consumer:
+                            description: Consumer is the number of Snuba consumer
+                              nodes.
+                            format: int32
+                            type: integer
+                          replacer:
+                            description: Replacer is the number of Snuba replacer
+                              nodes.
+                            format: int32
+                            type: integer
+                        type: object
+                      resources:
+                        description: Resources defines the CPU/memory requests and
+                          limits for Snuba components.
+                        properties:
+                          api:
+                            description: API defines resources for Snuba API nodes.
+                            properties:
+                              claims:
+                                description: |-
+                                  Claims lists the names of resources, defined in spec.resourceClaims,
+                                  that are used by this container.
+
+                                  This is an alpha field and requires enabling the
+                                  DynamicResourceAllocation feature gate.
+
+                                  This field is immutable. It can only be set for containers.
+                                items:
+                                  description: ResourceClaim references one entry
+                                    in PodSpec.ResourceClaims.
+                                  properties:
+                                    name:
+                                      description: |-
+                                        Name must match the name of one entry in pod.spec.resourceClaims of
+                                        the Pod where this field is used. It makes that resource available
+                                        inside a container.
+                                      type: string
+                                    request:
+                                      description: |-
+                                        Request is the name chosen for a request in the referenced claim.
+                                        If empty, everything from the claim is made available, otherwise
+                                        only the result of this request.
+                                      type: string
+                                  required:
+                                  - name
+                                  type: object
+                                type: array
+                                x-kubernetes-list-map-keys:
+                                - name
+                                x-kubernetes-list-type: map
+                              limits:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: |-
+                                  Limits describes the maximum amount of compute resources allowed.
+                                  More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                type: object
+                              requests:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: |-
+                                  Requests describes the minimum amount of compute resources required.
+                                  If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                  otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                  More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                type: object
+                            type: object
+                          consumer:
+                            description: Consumer defines resources for Snuba consumer
+                              nodes.
+                            properties:
+                              claims:
+                                description: |-
+                                  Claims lists the names of resources, defined in spec.resourceClaims,
+                                  that are used by this container.
+
+                                  This is an alpha field and requires enabling the
+                                  DynamicResourceAllocation feature gate.
+
+                                  This field is immutable. It can only be set for containers.
+                                items:
+                                  description: ResourceClaim references one entry
+                                    in PodSpec.ResourceClaims.
+                                  properties:
+                                    name:
+                                      description: |-
+                                        Name must match the name of one entry in pod.spec.resourceClaims of
+                                        the Pod where this field is used. It makes that resource available
+                                        inside a container.
+                                      type: string
+                                    request:
+                                      description: |-
+                                        Request is the name chosen for a request in the referenced claim.
+                                        If empty, everything from the claim is made available, otherwise
+                                        only the result of this request.
+                                      type: string
+                                  required:
+                                  - name
+                                  type: object
+                                type: array
+                                x-kubernetes-list-map-keys:
+                                - name
+                                x-kubernetes-list-type: map
+                              limits:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: |-
+                                  Limits describes the maximum amount of compute resources allowed.
+                                  More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                type: object
+                              requests:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: |-
+                                  Requests describes the minimum amount of compute resources required.
+                                  If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                  otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                  More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                type: object
+                            type: object
+                          replacer:
+                            description: Replacer defines resources for Snuba replacer
+                              nodes.
+                            properties:
+                              claims:
+                                description: |-
+                                  Claims lists the names of resources, defined in spec.resourceClaims,
+                                  that are used by this container.
+
+                                  This is an alpha field and requires enabling the
+                                  DynamicResourceAllocation feature gate.
+
+                                  This field is immutable. It can only be set for containers.
+                                items:
+                                  description: ResourceClaim references one entry
+                                    in PodSpec.ResourceClaims.
+                                  properties:
+                                    name:
+                                      description: |-
+                                        Name must match the name of one entry in pod.spec.resourceClaims of
+                                        the Pod where this field is used. It makes that resource available
+                                        inside a container.
+                                      type: string
+                                    request:
+                                      description: |-
+                                        Request is the name chosen for a request in the referenced claim.
+                                        If empty, everything from the claim is made available, otherwise
+                                        only the result of this request.
+                                      type: string
+                                  required:
+                                  - name
+                                  type: object
+                                type: array
+                                x-kubernetes-list-map-keys:
+                                - name
+                                x-kubernetes-list-type: map
+                              limits:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: |-
+                                  Limits describes the maximum amount of compute resources allowed.
+                                  More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                type: object
+                              requests:
+                                additionalProperties:
+                                  anyOf:
+                                  - type: integer
+                                  - type: string
+                                  pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                                  x-kubernetes-int-or-string: true
+                                description: |-
+                                  Requests describes the minimum amount of compute resources required.
+                                  If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                                  otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                                  More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                                type: object
+                            type: object
+                        type: object
                     type: object
                 type: object
               replica:
                 description: Replica defines the number of web and worker replicas.
                 properties:
+                  clickhouse:
+                    description: ClickHouse is the number of ClickHouse nodes.
+                    format: int32
+                    type: integer
+                  kafka:
+                    description: Kafka is the number of Kafka broker nodes.
+                    format: int32
+                    type: integer
+                  relay:
+                    description: Relay is the number of Sentry Relay nodes.
+                    format: int32
+                    type: integer
+                  snuba:
+                    description: Snuba defines the number of replicas for different
+                      Snuba components.
+                    properties:
+                      api:
+                        description: API is the number of Snuba API nodes.
+                        format: int32
+                        type: integer
+                      consumer:
+                        description: Consumer is the number of Snuba consumer nodes.
+                        format: int32
+                        type: integer
+                      replacer:
+                        description: Replacer is the number of Snuba replacer nodes.
+                        format: int32
+                        type: integer
+                    type: object
+                  symbolicator:
+                    description: Symbolicator is the number of Symbolicator nodes.
+                    format: int32
+                    type: integer
                   web:
+                    description: Web is the number of Sentry web UI nodes.
                     format: int32
                     type: integer
                   worker:
+                    description: Worker is the number of Sentry background worker
+                      nodes.
                     format: int32
                     type: integer
                 type: object
@@ -95,9 +907,126 @@ spec:
                 description: Resources defines the CPU/memory requests and limits
                   for Sentry components.
                 properties:
+                  clickhouse:
+                    description: ClickHouse defines resources for ClickHouse nodes.
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This is an alpha field and requires enabling the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                  kafka:
+                    description: Kafka defines resources for Kafka brokers.
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This is an alpha field and requires enabling the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
                   postgresql:
-                    description: ResourceRequirements describes the compute resource
-                      requirements.
+                    description: Postgresql defines resources for PostgreSQL nodes.
                     properties:
                       claims:
                         description: |-
@@ -156,8 +1085,308 @@ spec:
                         type: object
                     type: object
                   redis:
-                    description: ResourceRequirements describes the compute resource
-                      requirements.
+                    description: Redis defines resources for Redis nodes.
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This is an alpha field and requires enabling the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                  relay:
+                    description: Relay defines resources for Sentry Relay nodes.
+                    properties:
+                      claims:
+                        description: |-
+                          Claims lists the names of resources, defined in spec.resourceClaims,
+                          that are used by this container.
+
+                          This is an alpha field and requires enabling the
+                          DynamicResourceAllocation feature gate.
+
+                          This field is immutable. It can only be set for containers.
+                        items:
+                          description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                          properties:
+                            name:
+                              description: |-
+                                Name must match the name of one entry in pod.spec.resourceClaims of
+                                the Pod where this field is used. It makes that resource available
+                                inside a container.
+                              type: string
+                            request:
+                              description: |-
+                                Request is the name chosen for a request in the referenced claim.
+                                If empty, everything from the claim is made available, otherwise
+                                only the result of this request.
+                              type: string
+                          required:
+                          - name
+                          type: object
+                        type: array
+                        x-kubernetes-list-map-keys:
+                        - name
+                        x-kubernetes-list-type: map
+                      limits:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Limits describes the maximum amount of compute resources allowed.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                      requests:
+                        additionalProperties:
+                          anyOf:
+                          - type: integer
+                          - type: string
+                          pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                          x-kubernetes-int-or-string: true
+                        description: |-
+                          Requests describes the minimum amount of compute resources required.
+                          If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                          otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                          More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                        type: object
+                    type: object
+                  snuba:
+                    description: Snuba defines resources for Snuba components.
+                    properties:
+                      api:
+                        description: API defines resources for Snuba API nodes.
+                        properties:
+                          claims:
+                            description: |-
+                              Claims lists the names of resources, defined in spec.resourceClaims,
+                              that are used by this container.
+
+                              This is an alpha field and requires enabling the
+                              DynamicResourceAllocation feature gate.
+
+                              This field is immutable. It can only be set for containers.
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: |-
+                                    Name must match the name of one entry in pod.spec.resourceClaims of
+                                    the Pod where this field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                                request:
+                                  description: |-
+                                    Request is the name chosen for a request in the referenced claim.
+                                    If empty, everything from the claim is made available, otherwise
+                                    only the result of this request.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Limits describes the maximum amount of compute resources allowed.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Requests describes the minimum amount of compute resources required.
+                              If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                              otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                        type: object
+                      consumer:
+                        description: Consumer defines resources for Snuba consumer
+                          nodes.
+                        properties:
+                          claims:
+                            description: |-
+                              Claims lists the names of resources, defined in spec.resourceClaims,
+                              that are used by this container.
+
+                              This is an alpha field and requires enabling the
+                              DynamicResourceAllocation feature gate.
+
+                              This field is immutable. It can only be set for containers.
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: |-
+                                    Name must match the name of one entry in pod.spec.resourceClaims of
+                                    the Pod where this field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                                request:
+                                  description: |-
+                                    Request is the name chosen for a request in the referenced claim.
+                                    If empty, everything from the claim is made available, otherwise
+                                    only the result of this request.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Limits describes the maximum amount of compute resources allowed.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Requests describes the minimum amount of compute resources required.
+                              If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                              otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                        type: object
+                      replacer:
+                        description: Replacer defines resources for Snuba replacer
+                          nodes.
+                        properties:
+                          claims:
+                            description: |-
+                              Claims lists the names of resources, defined in spec.resourceClaims,
+                              that are used by this container.
+
+                              This is an alpha field and requires enabling the
+                              DynamicResourceAllocation feature gate.
+
+                              This field is immutable. It can only be set for containers.
+                            items:
+                              description: ResourceClaim references one entry in PodSpec.ResourceClaims.
+                              properties:
+                                name:
+                                  description: |-
+                                    Name must match the name of one entry in pod.spec.resourceClaims of
+                                    the Pod where this field is used. It makes that resource available
+                                    inside a container.
+                                  type: string
+                                request:
+                                  description: |-
+                                    Request is the name chosen for a request in the referenced claim.
+                                    If empty, everything from the claim is made available, otherwise
+                                    only the result of this request.
+                                  type: string
+                              required:
+                              - name
+                              type: object
+                            type: array
+                            x-kubernetes-list-map-keys:
+                            - name
+                            x-kubernetes-list-type: map
+                          limits:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Limits describes the maximum amount of compute resources allowed.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                          requests:
+                            additionalProperties:
+                              anyOf:
+                              - type: integer
+                              - type: string
+                              pattern: ^(\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))(([KMGTPE]i)|[numkMGTPE]|([eE](\+|-)?(([0-9]+(\.[0-9]*)?)|(\.[0-9]+))))?$
+                              x-kubernetes-int-or-string: true
+                            description: |-
+                              Requests describes the minimum amount of compute resources required.
+                              If Requests is omitted for a container, it defaults to Limits if that is explicitly specified,
+                              otherwise to an implementation-defined value. Requests cannot exceed Limits.
+                              More info: https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/
+                            type: object
+                        type: object
+                    type: object
+                  symbolicator:
+                    description: Symbolicator defines resources for Symbolicator nodes.
                     properties:
                       claims:
                         description: |-
@@ -216,8 +1445,7 @@ spec:
                         type: object
                     type: object
                   web:
-                    description: ResourceRequirements describes the compute resource
-                      requirements.
+                    description: Web defines resources for Sentry web UI nodes.
                     properties:
                       claims:
                         description: |-
@@ -276,8 +1504,8 @@ spec:
                         type: object
                     type: object
                   worker:
-                    description: ResourceRequirements describes the compute resource
-                      requirements.
+                    description: Worker defines resources for Sentry background worker
+                      nodes.
                     properties:
                       claims:
                         description: |-
@@ -345,6 +1573,331 @@ spec:
           status:
             description: SentryClusterStatus defines the observed state of SentryCluster
             properties:
+              componentStatus:
+                description: ComponentStatus provides status information for each
+                  Sentry component.
+                properties:
+                  clickhouse:
+                    description: ClickHouse provides status information for the ClickHouse
+                      component.
+                    properties:
+                      availableReplicas:
+                        description: AvailableReplicas is the number of available
+                          replicas.
+                        format: int32
+                        type: integer
+                      message:
+                        description: Message provides additional information about
+                          the component status.
+                        type: string
+                      ready:
+                        description: Ready indicates whether the component is ready.
+                        type: boolean
+                      readyReplicas:
+                        description: ReadyReplicas is the number of ready replicas.
+                        format: int32
+                        type: integer
+                      replicas:
+                        description: Replicas is the number of desired replicas.
+                        format: int32
+                        type: integer
+                      unavailableReplicas:
+                        description: UnavailableReplicas is the number of unavailable
+                          replicas.
+                        format: int32
+                        type: integer
+                      updatedReplicas:
+                        description: UpdatedReplicas is the number of updated replicas.
+                        format: int32
+                        type: integer
+                    required:
+                    - ready
+                    type: object
+                  kafka:
+                    description: Kafka provides status information for the Kafka component.
+                    properties:
+                      availableReplicas:
+                        description: AvailableReplicas is the number of available
+                          replicas.
+                        format: int32
+                        type: integer
+                      message:
+                        description: Message provides additional information about
+                          the component status.
+                        type: string
+                      ready:
+                        description: Ready indicates whether the component is ready.
+                        type: boolean
+                      readyReplicas:
+                        description: ReadyReplicas is the number of ready replicas.
+                        format: int32
+                        type: integer
+                      replicas:
+                        description: Replicas is the number of desired replicas.
+                        format: int32
+                        type: integer
+                      unavailableReplicas:
+                        description: UnavailableReplicas is the number of unavailable
+                          replicas.
+                        format: int32
+                        type: integer
+                      updatedReplicas:
+                        description: UpdatedReplicas is the number of updated replicas.
+                        format: int32
+                        type: integer
+                    required:
+                    - ready
+                    type: object
+                  postgresql:
+                    description: Postgresql provides status information for the PostgreSQL
+                      component.
+                    properties:
+                      availableReplicas:
+                        description: AvailableReplicas is the number of available
+                          replicas.
+                        format: int32
+                        type: integer
+                      message:
+                        description: Message provides additional information about
+                          the component status.
+                        type: string
+                      ready:
+                        description: Ready indicates whether the component is ready.
+                        type: boolean
+                      readyReplicas:
+                        description: ReadyReplicas is the number of ready replicas.
+                        format: int32
+                        type: integer
+                      replicas:
+                        description: Replicas is the number of desired replicas.
+                        format: int32
+                        type: integer
+                      unavailableReplicas:
+                        description: UnavailableReplicas is the number of unavailable
+                          replicas.
+                        format: int32
+                        type: integer
+                      updatedReplicas:
+                        description: UpdatedReplicas is the number of updated replicas.
+                        format: int32
+                        type: integer
+                    required:
+                    - ready
+                    type: object
+                  redis:
+                    description: Redis provides status information for the Redis component.
+                    properties:
+                      availableReplicas:
+                        description: AvailableReplicas is the number of available
+                          replicas.
+                        format: int32
+                        type: integer
+                      message:
+                        description: Message provides additional information about
+                          the component status.
+                        type: string
+                      ready:
+                        description: Ready indicates whether the component is ready.
+                        type: boolean
+                      readyReplicas:
+                        description: ReadyReplicas is the number of ready replicas.
+                        format: int32
+                        type: integer
+                      replicas:
+                        description: Replicas is the number of desired replicas.
+                        format: int32
+                        type: integer
+                      unavailableReplicas:
+                        description: UnavailableReplicas is the number of unavailable
+                          replicas.
+                        format: int32
+                        type: integer
+                      updatedReplicas:
+                        description: UpdatedReplicas is the number of updated replicas.
+                        format: int32
+                        type: integer
+                    required:
+                    - ready
+                    type: object
+                  relay:
+                    description: Relay provides status information for the Relay component.
+                    properties:
+                      availableReplicas:
+                        description: AvailableReplicas is the number of available
+                          replicas.
+                        format: int32
+                        type: integer
+                      message:
+                        description: Message provides additional information about
+                          the component status.
+                        type: string
+                      ready:
+                        description: Ready indicates whether the component is ready.
+                        type: boolean
+                      readyReplicas:
+                        description: ReadyReplicas is the number of ready replicas.
+                        format: int32
+                        type: integer
+                      replicas:
+                        description: Replicas is the number of desired replicas.
+                        format: int32
+                        type: integer
+                      unavailableReplicas:
+                        description: UnavailableReplicas is the number of unavailable
+                          replicas.
+                        format: int32
+                        type: integer
+                      updatedReplicas:
+                        description: UpdatedReplicas is the number of updated replicas.
+                        format: int32
+                        type: integer
+                    required:
+                    - ready
+                    type: object
+                  snuba:
+                    description: Snuba provides status information for the Snuba component.
+                    properties:
+                      availableReplicas:
+                        description: AvailableReplicas is the number of available
+                          replicas.
+                        format: int32
+                        type: integer
+                      message:
+                        description: Message provides additional information about
+                          the component status.
+                        type: string
+                      ready:
+                        description: Ready indicates whether the component is ready.
+                        type: boolean
+                      readyReplicas:
+                        description: ReadyReplicas is the number of ready replicas.
+                        format: int32
+                        type: integer
+                      replicas:
+                        description: Replicas is the number of desired replicas.
+                        format: int32
+                        type: integer
+                      unavailableReplicas:
+                        description: UnavailableReplicas is the number of unavailable
+                          replicas.
+                        format: int32
+                        type: integer
+                      updatedReplicas:
+                        description: UpdatedReplicas is the number of updated replicas.
+                        format: int32
+                        type: integer
+                    required:
+                    - ready
+                    type: object
+                  symbolicator:
+                    description: Symbolicator provides status information for the
+                      Symbolicator component.
+                    properties:
+                      availableReplicas:
+                        description: AvailableReplicas is the number of available
+                          replicas.
+                        format: int32
+                        type: integer
+                      message:
+                        description: Message provides additional information about
+                          the component status.
+                        type: string
+                      ready:
+                        description: Ready indicates whether the component is ready.
+                        type: boolean
+                      readyReplicas:
+                        description: ReadyReplicas is the number of ready replicas.
+                        format: int32
+                        type: integer
+                      replicas:
+                        description: Replicas is the number of desired replicas.
+                        format: int32
+                        type: integer
+                      unavailableReplicas:
+                        description: UnavailableReplicas is the number of unavailable
+                          replicas.
+                        format: int32
+                        type: integer
+                      updatedReplicas:
+                        description: UpdatedReplicas is the number of updated replicas.
+                        format: int32
+                        type: integer
+                    required:
+                    - ready
+                    type: object
+                  web:
+                    description: Web provides status information for the Sentry web
+                      component.
+                    properties:
+                      availableReplicas:
+                        description: AvailableReplicas is the number of available
+                          replicas.
+                        format: int32
+                        type: integer
+                      message:
+                        description: Message provides additional information about
+                          the component status.
+                        type: string
+                      ready:
+                        description: Ready indicates whether the component is ready.
+                        type: boolean
+                      readyReplicas:
+                        description: ReadyReplicas is the number of ready replicas.
+                        format: int32
+                        type: integer
+                      replicas:
+                        description: Replicas is the number of desired replicas.
+                        format: int32
+                        type: integer
+                      unavailableReplicas:
+                        description: UnavailableReplicas is the number of unavailable
+                          replicas.
+                        format: int32
+                        type: integer
+                      updatedReplicas:
+                        description: UpdatedReplicas is the number of updated replicas.
+                        format: int32
+                        type: integer
+                    required:
+                    - ready
+                    type: object
+                  worker:
+                    description: Worker provides status information for the Sentry
+                      worker component.
+                    properties:
+                      availableReplicas:
+                        description: AvailableReplicas is the number of available
+                          replicas.
+                        format: int32
+                        type: integer
+                      message:
+                        description: Message provides additional information about
+                          the component status.
+                        type: string
+                      ready:
+                        description: Ready indicates whether the component is ready.
+                        type: boolean
+                      readyReplicas:
+                        description: ReadyReplicas is the number of ready replicas.
+                        format: int32
+                        type: integer
+                      replicas:
+                        description: Replicas is the number of desired replicas.
+                        format: int32
+                        type: integer
+                      unavailableReplicas:
+                        description: UnavailableReplicas is the number of unavailable
+                          replicas.
+                        format: int32
+                        type: integer
+                      updatedReplicas:
+                        description: UpdatedReplicas is the number of updated replicas.
+                        format: int32
+                        type: integer
+                    required:
+                    - ready
+                    type: object
+                type: object
               conditions:
                 description: Conditions represent the state of the Sentry deployment.
                 items:
@@ -402,11 +1955,31 @@ spec:
                   - type
                   type: object
                 type: array
+              lastUpdated:
+                description: LastUpdated is the timestamp when the status was last
+                  updated.
+                format: date-time
+                type: string
               nodes:
                 description: Nodes are the names of the Sentry pods.
                 items:
                   type: string
                 type: array
+              observedGeneration:
+                description: ObservedGeneration is the most recent generation observed
+                  by the controller.
+                format: int64
+                type: integer
+              phase:
+                description: |-
+                  Phase is a simple, high-level summary of where the SentryCluster is in its lifecycle.
+                  The phase is not intended to be a comprehensive rollup of observations of the SentryCluster state,
+                  nor is it intended to be a comprehensive state machine.
+                  Possible values: Pending, Provisioning, Running, Upgrading, Degraded, Failed
+                type: string
+              url:
+                description: URL is the external URL where Sentry can be accessed.
+                type: string
               version:
                 description: Version is the current Sentry version.
                 type: string

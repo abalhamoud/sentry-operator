@@ -258,6 +258,9 @@ type Ingress struct {
 	
 	// ClassName is the IngressClass name for Kubernetes 1.18+ clusters.
 	ClassName string `json:"className,omitempty"`
+
+	// PathType is the PathType for Sentry (e.g., "ImplementationSpecific").
+	PathType string `json:"pathType"`
 }
 
 // IngressTLS defines TLS configuration for the Ingress.
@@ -472,10 +475,10 @@ type PerformanceConfig struct {
 	Enabled bool `json:"enabled"`
 
 	// SampleRate defines the sampling rate for performance data (0.0-1.0).
-	SampleRate float64 `json:"sampleRate,omitempty"`
+	SampleRate string `json:"sampleRate,omitempty"`
 
 	// TracesSampleRate defines the sampling rate for traces (0.0-1.0).
-	TracesSampleRate float64 `json:"tracesSampleRate,omitempty"`
+	TracesSampleRate string `json:"tracesSampleRate,omitempty"`
 }
 
 // Replica defines the number of replicas for each Sentry component.

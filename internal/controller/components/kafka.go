@@ -89,7 +89,7 @@ func (r *KafkaReconciler) Reconcile(ctx context.Context, sentryCluster *sentryv1
 	// --- Assuming Managed Kafka ---
 
 	// 1. Reconcile PVC
-	if kafkaPersistence.Managed != nil && kafkaPersistence.Managed.Size != "" {
+	if kafkaPersistence.Managed != nil && kafkaPersistence.Managed.Storage.Size != "" {
 		pvcName := sentryCluster.Name + "-kafka-pvc"
 		pvc := &corev1.PersistentVolumeClaim{}
 		err := r.Get(ctx, types.NamespacedName{Name: pvcName, Namespace: sentryCluster.Namespace}, pvc)
@@ -174,7 +174,7 @@ func (r *KafkaReconciler) defineKafkaPVC(sentryCluster *sentryv1alpha1.SentryClu
 	labels := GetComponentLabels(sentryCluster, "kafka")
 	
 	// Parse the storage size
-	storageSize := resource.MustParse(sentryCluster.Spec.Persistence.Kafka.Managed.Size)
+	storageSize := resource.MustParse(sentryCluster.Spec.Persistence.Kafka.Managed.Storage.Size)
 	
 	// Create the PVC
 	pvc := &corev1.PersistentVolumeClaim{
@@ -190,12 +190,12 @@ func (r *KafkaReconciler) defineKafkaPVC(sentryCluster *sentryv1alpha1.SentryClu
 					corev1.ResourceStorage: storageSize,
 				},
 			},
-			StorageClassName: &sentryCluster.Spec.Persistence.Kafka.Managed.StorageClass,
+			StorageClassName: &sentryCluster.Spec.Persistence.Kafka.Managed.Storage.StorageClass,
 		},
 	}
 	
 	// If StorageClass is empty, set it to nil to use the default StorageClass
-	if sentryCluster.Spec.Persistence.Kafka.Managed.StorageClass == "" {
+	if sentryCluster.Spec.Persistence.Kafka.Managed.Storage.StorageClass == "" {
 		pvc.Spec.StorageClassName = nil
 	}
 	
