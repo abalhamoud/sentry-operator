@@ -69,7 +69,7 @@ func (r *IngressReconciler) Reconcile(ctx context.Context, sentryCluster *sentry
 		return ctrl.Result{}, errors.Wrap(err, "failed to get Ingress")
 	} else {
 		log.V(1).Info("Ingress already exists", "Ingress.Namespace", ingress.Namespace, "Ingress.Name", ingress.Name)
-		
+
 		// Update Ingress if needed
 		desiredIngress := r.defineIngress(sentryCluster)
 		if !reflect.DeepEqual(ingress.Spec, desiredIngress.Spec) || !reflect.DeepEqual(ingress.Annotations, desiredIngress.Annotations) {
@@ -91,17 +91,17 @@ func (r *IngressReconciler) Reconcile(ctx context.Context, sentryCluster *sentry
 // defineIngress creates the desired Ingress object for Sentry.
 func (r *IngressReconciler) defineIngress(sentryCluster *sentryv1alpha1.SentryCluster) *networkingv1.Ingress {
 	labels := GetComponentLabels(sentryCluster, "ingress")
-	
+
 	// Set up annotations
 	annotations := make(map[string]string)
-	
+
 	// Add custom annotations if provided
 	if sentryCluster.Spec.Ingress.Annotations != nil {
 		for k, v := range sentryCluster.Spec.Ingress.Annotations {
 			annotations[k] = v
 		}
 	}
-	
+
 	// Set up path type
 	pathType := networkingv1.PathTypePrefix
 	if sentryCluster.Spec.Ingress.PathType != "" {
@@ -114,13 +114,13 @@ func (r *IngressReconciler) defineIngress(sentryCluster *sentryv1alpha1.SentryCl
 			pathType = networkingv1.PathTypeImplementationSpecific
 		}
 	}
-	
+
 	// Set up path
 	path := "/"
 	if sentryCluster.Spec.Ingress.Path != "" {
 		path = sentryCluster.Spec.Ingress.Path
 	}
-	
+
 	// Create the Ingress
 	ingress := &networkingv1.Ingress{
 		ObjectMeta: metav1.ObjectMeta{
@@ -155,14 +155,14 @@ func (r *IngressReconciler) defineIngress(sentryCluster *sentryv1alpha1.SentryCl
 			},
 		},
 	}
-	
+
 	// Add TLS if enabled
 	if sentryCluster.Spec.Ingress.TLS != nil && sentryCluster.Spec.Ingress.TLS.Enabled {
 		secretName := sentryCluster.Spec.Ingress.TLS.SecretName
 		if secretName == "" {
 			secretName = fmt.Sprintf("%s-tls", sentryCluster.Name)
 		}
-		
+
 		ingress.Spec.TLS = []networkingv1.IngressTLS{
 			{
 				Hosts:      []string{sentryCluster.Spec.Ingress.Host},
@@ -170,12 +170,12 @@ func (r *IngressReconciler) defineIngress(sentryCluster *sentryv1alpha1.SentryCl
 			},
 		}
 	}
-	
+
 	// Add ingress class name if provided
 	if sentryCluster.Spec.Ingress.ClassName != "" {
 		ingress.Spec.IngressClassName = &sentryCluster.Spec.Ingress.ClassName
 	}
-	
+
 	if err := controllerutil.SetControllerReference(sentryCluster, ingress, r.Scheme); err != nil {
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on Ingress")
 	}

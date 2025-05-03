@@ -145,13 +145,13 @@ func (r *KafkaReconciler) Reconcile(ctx context.Context, sentryCluster *sentryv1
 		return ctrl.Result{}, errors.Wrap(err, "failed to get Kafka StatefulSet")
 	} else {
 		log.V(1).Info("Kafka StatefulSet already exists", "StatefulSet.Namespace", sts.Namespace, "StatefulSet.Name", sts.Name)
-		
+
 		// 4. Check StatefulSet readiness
 		if sts.Status.ReadyReplicas < *sts.Spec.Replicas {
 			log.Info("Kafka StatefulSet not yet ready", "ReadyReplicas", sts.Status.ReadyReplicas, "Replicas", *sts.Spec.Replicas)
 			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 		}
-		
+
 		// 5. Update StatefulSet if needed
 		desiredSts := r.defineKafkaStatefulSet(sentryCluster)
 		if !reflect.DeepEqual(sts.Spec, desiredSts.Spec) {
@@ -172,10 +172,10 @@ func (r *KafkaReconciler) Reconcile(ctx context.Context, sentryCluster *sentryv1
 // defineKafkaPVC creates the desired PersistentVolumeClaim object for Kafka.
 func (r *KafkaReconciler) defineKafkaPVC(sentryCluster *sentryv1alpha1.SentryCluster) *corev1.PersistentVolumeClaim {
 	labels := GetComponentLabels(sentryCluster, "kafka")
-	
+
 	// Parse the storage size
 	storageSize := resource.MustParse(sentryCluster.Spec.Persistence.Kafka.Managed.Storage.Size)
-	
+
 	// Create the PVC
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -185,7 +185,7 @@ func (r *KafkaReconciler) defineKafkaPVC(sentryCluster *sentryv1alpha1.SentryClu
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-			Resources: corev1.ResourceRequirements{
+			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: storageSize,
 				},
@@ -193,12 +193,12 @@ func (r *KafkaReconciler) defineKafkaPVC(sentryCluster *sentryv1alpha1.SentryClu
 			StorageClassName: &sentryCluster.Spec.Persistence.Kafka.Managed.Storage.StorageClass,
 		},
 	}
-	
+
 	// If StorageClass is empty, set it to nil to use the default StorageClass
 	if sentryCluster.Spec.Persistence.Kafka.Managed.Storage.StorageClass == "" {
 		pvc.Spec.StorageClassName = nil
 	}
-	
+
 	if err := controllerutil.SetControllerReference(sentryCluster, pvc, r.Scheme); err != nil {
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on Kafka PVC")
 	}
@@ -208,7 +208,7 @@ func (r *KafkaReconciler) defineKafkaPVC(sentryCluster *sentryv1alpha1.SentryClu
 // defineKafkaService creates the desired Service object for Kafka.
 func (r *KafkaReconciler) defineKafkaService(sentryCluster *sentryv1alpha1.SentryCluster) *corev1.Service {
 	labels := GetComponentLabels(sentryCluster, "kafka")
-	
+
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sentryCluster.Name + "-kafka",
@@ -234,10 +234,10 @@ func (r *KafkaReconciler) defineKafkaService(sentryCluster *sentryv1alpha1.Sentr
 // defineKafkaStatefulSet creates the desired StatefulSet object for Kafka.
 func (r *KafkaReconciler) defineKafkaStatefulSet(sentryCluster *sentryv1alpha1.SentryCluster) *appsv1.StatefulSet {
 	labels := GetComponentLabels(sentryCluster, "kafka")
-	
+
 	// Set default values
 	replicas := int32(1) // Kafka is typically deployed as a single instance in this setup
-	
+
 	// Create the StatefulSet
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -308,7 +308,7 @@ func (r *KafkaReconciler) defineKafkaStatefulSet(sentryCluster *sentryv1alpha1.S
 			},
 		},
 	}
-	
+
 	if err := controllerutil.SetControllerReference(sentryCluster, sts, r.Scheme); err != nil {
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on Kafka StatefulSet")
 	}

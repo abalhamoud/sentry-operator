@@ -610,11 +610,7 @@ func (in *Resources) DeepCopyInto(out *Resources) {
 	in.Postgresql.DeepCopyInto(&out.Postgresql)
 	in.Kafka.DeepCopyInto(&out.Kafka)
 	in.ClickHouse.DeepCopyInto(&out.ClickHouse)
-	if in.Snuba != nil {
-		in, out := &in.Snuba, &out.Snuba
-		*out = new(SnubaResources)
-		(*in).DeepCopyInto(*out)
-	}
+	in.Snuba.DeepCopyInto(&out.Snuba)
 	in.Relay.DeepCopyInto(&out.Relay)
 	in.Symbolicator.DeepCopyInto(&out.Symbolicator)
 }

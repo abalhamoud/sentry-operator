@@ -104,13 +104,13 @@ func (r *RelayReconciler) Reconcile(ctx context.Context, sentryCluster *sentryv1
 		return ctrl.Result{}, errors.Wrap(err, "failed to get Relay Deployment")
 	} else {
 		log.V(1).Info("Relay Deployment already exists", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
-		
+
 		// 4. Check Deployment readiness
 		if deployment.Status.ReadyReplicas < *deployment.Spec.Replicas {
 			log.Info("Relay Deployment not yet ready", "ReadyReplicas", deployment.Status.ReadyReplicas, "Replicas", *deployment.Spec.Replicas)
 			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 		}
-		
+
 		// 5. Update Deployment if needed
 		desiredDeployment := r.defineRelayDeployment(sentryCluster)
 		if !reflect.DeepEqual(deployment.Spec, desiredDeployment.Spec) {
@@ -131,7 +131,7 @@ func (r *RelayReconciler) Reconcile(ctx context.Context, sentryCluster *sentryv1
 // defineRelayConfigMap creates the desired ConfigMap object for Relay configuration.
 func (r *RelayReconciler) defineRelayConfigMap(sentryCluster *sentryv1alpha1.SentryCluster) *corev1.ConfigMap {
 	labels := GetComponentLabels(sentryCluster, "relay")
-	
+
 	// Build the URL prefix
 	protocol := "http"
 	if sentryCluster.Spec.Ingress.TLS != nil && sentryCluster.Spec.Ingress.TLS.Enabled {
@@ -142,7 +142,7 @@ func (r *RelayReconciler) defineRelayConfigMap(sentryCluster *sentryv1alpha1.Sen
 		path = sentryCluster.Spec.Ingress.Path
 	}
 	urlPrefix := fmt.Sprintf("%s://%s%s", protocol, sentryCluster.Spec.Ingress.Host, path)
-	
+
 	// Basic Relay configuration
 	relayConfig := fmt.Sprintf(`
 [relay]
@@ -170,7 +170,7 @@ processing.enabled = true
 // defineRelayService creates the desired Service object for Relay.
 func (r *RelayReconciler) defineRelayService(sentryCluster *sentryv1alpha1.SentryCluster) *corev1.Service {
 	labels := GetComponentLabels(sentryCluster, "relay")
-	
+
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sentryCluster.Name + "-relay",
@@ -198,16 +198,16 @@ func (r *RelayReconciler) defineRelayService(sentryCluster *sentryv1alpha1.Sentr
 // defineRelayDeployment creates the desired Deployment object for Relay.
 func (r *RelayReconciler) defineRelayDeployment(sentryCluster *sentryv1alpha1.SentryCluster) *appsv1.Deployment {
 	labels := GetComponentLabels(sentryCluster, "relay")
-	
+
 	// Set default values
 	replicas := int32(1)
 	if sentryCluster.Spec.Replica.Relay > 0 {
 		replicas = sentryCluster.Spec.Replica.Relay
 	}
-	
+
 	// Get the secret name
 	secretName := sentryCluster.Name + "-secret"
-	
+
 	// Create the Deployment
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -296,11 +296,11 @@ func (r *RelayReconciler) defineRelayDeployment(sentryCluster *sentryv1alpha1.Se
 			},
 		},
 	}
-	
+
 	// Add environment variables for external Kafka if configured
 	if sentryCluster.Spec.Persistence.Kafka != nil && sentryCluster.Spec.Persistence.Kafka.External != nil {
 		secretName := sentryCluster.Spec.Persistence.Kafka.External.SecretName
-		
+
 		// Replace the static environment variables with ones from the secret
 		for i, env := range deployment.Spec.Template.Spec.Containers[0].Env {
 			if env.Name == "RELAY_KAFKA_BROKERS" {
@@ -314,7 +314,7 @@ func (r *RelayReconciler) defineRelayDeployment(sentryCluster *sentryv1alpha1.Se
 			}
 		}
 	}
-	
+
 	if err := controllerutil.SetControllerReference(sentryCluster, deployment, r.Scheme); err != nil {
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on Relay Deployment")
 	}

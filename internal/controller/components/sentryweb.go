@@ -85,13 +85,13 @@ func (r *SentryWebReconciler) Reconcile(ctx context.Context, sentryCluster *sent
 		return ctrl.Result{}, errors.Wrap(err, "failed to get Sentry Web Deployment")
 	} else {
 		log.V(1).Info("Sentry Web Deployment already exists", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
-		
+
 		// 3. Check Deployment readiness
 		if deployment.Status.ReadyReplicas < *deployment.Spec.Replicas {
 			log.Info("Sentry Web Deployment not yet ready", "ReadyReplicas", deployment.Status.ReadyReplicas, "Replicas", *deployment.Spec.Replicas)
 			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 		}
-		
+
 		// 4. Update Deployment if needed
 		desiredDeployment := r.defineSentryWebDeployment(sentryCluster)
 		if !reflect.DeepEqual(deployment.Spec, desiredDeployment.Spec) {
@@ -112,7 +112,7 @@ func (r *SentryWebReconciler) Reconcile(ctx context.Context, sentryCluster *sent
 // defineSentryWebService creates the desired Service object for Sentry Web.
 func (r *SentryWebReconciler) defineSentryWebService(sentryCluster *sentryv1alpha1.SentryCluster) *corev1.Service {
 	labels := GetComponentLabels(sentryCluster, "web")
-	
+
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sentryCluster.Name + "-web",
@@ -140,16 +140,16 @@ func (r *SentryWebReconciler) defineSentryWebService(sentryCluster *sentryv1alph
 // defineSentryWebDeployment creates the desired Deployment object for Sentry Web.
 func (r *SentryWebReconciler) defineSentryWebDeployment(sentryCluster *sentryv1alpha1.SentryCluster) *appsv1.Deployment {
 	labels := GetComponentLabels(sentryCluster, "web")
-	
+
 	// Set default values
 	replicas := int32(1)
 	if sentryCluster.Spec.Replica.Web > 0 {
 		replicas = sentryCluster.Spec.Replica.Web
 	}
-	
+
 	// Get the secret name
 	secretName := sentryCluster.Name + "-secret"
-	
+
 	// Create the Deployment
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -168,8 +168,8 @@ func (r *SentryWebReconciler) defineSentryWebDeployment(sentryCluster *sentryv1a
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Name:  "sentry-web",
-						Image: fmt.Sprintf("getsentry/sentry:%s", sentryCluster.Spec.Version),
+						Name:    "sentry-web",
+						Image:   fmt.Sprintf("getsentry/sentry:%s", sentryCluster.Spec.Version),
 						Command: []string{"sentry", "run", "web"},
 						Ports: []corev1.ContainerPort{
 							{
@@ -257,11 +257,11 @@ func (r *SentryWebReconciler) defineSentryWebDeployment(sentryCluster *sentryv1a
 			},
 		},
 	}
-	
+
 	// Add environment variables for external PostgreSQL if configured
 	if sentryCluster.Spec.Persistence.Postgresql.External != nil {
 		secretName := sentryCluster.Spec.Persistence.Postgresql.External.SecretName
-		
+
 		// Replace the static environment variables with ones from the secret
 		for i, env := range deployment.Spec.Template.Spec.Containers[0].Env {
 			if env.Name == "SENTRY_POSTGRES_HOST" {
@@ -306,11 +306,11 @@ func (r *SentryWebReconciler) defineSentryWebDeployment(sentryCluster *sentryv1a
 			}
 		}
 	}
-	
+
 	// Add environment variables for external Redis if configured
 	if sentryCluster.Spec.Persistence.Redis.External != nil {
 		secretName := sentryCluster.Spec.Persistence.Redis.External.SecretName
-		
+
 		// Replace the static environment variables with ones from the secret
 		for i, env := range deployment.Spec.Template.Spec.Containers[0].Env {
 			if env.Name == "SENTRY_REDIS_HOST" {
@@ -339,11 +339,11 @@ func (r *SentryWebReconciler) defineSentryWebDeployment(sentryCluster *sentryv1a
 			}
 		}
 	}
-	
+
 	// Add environment variables for external Kafka if configured
 	if sentryCluster.Spec.Persistence.Kafka != nil && sentryCluster.Spec.Persistence.Kafka.External != nil {
 		secretName := sentryCluster.Spec.Persistence.Kafka.External.SecretName
-		
+
 		// Replace the static environment variables with ones from the secret
 		for i, env := range deployment.Spec.Template.Spec.Containers[0].Env {
 			if env.Name == "SENTRY_KAFKA_HOST" {
@@ -365,7 +365,7 @@ func (r *SentryWebReconciler) defineSentryWebDeployment(sentryCluster *sentryv1a
 			}
 		}
 	}
-	
+
 	if err := controllerutil.SetControllerReference(sentryCluster, deployment, r.Scheme); err != nil {
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on Sentry Web Deployment")
 	}

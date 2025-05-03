@@ -52,28 +52,28 @@ type SentryClusterSpec struct {
 type Resources struct {
 	// Web defines resources for Sentry web UI nodes.
 	Web corev1.ResourceRequirements `json:"web,omitempty"`
-	
+
 	// Worker defines resources for Sentry background worker nodes.
 	Worker corev1.ResourceRequirements `json:"worker,omitempty"`
-	
+
 	// Redis defines resources for Redis nodes.
 	Redis corev1.ResourceRequirements `json:"redis,omitempty"`
-	
+
 	// Postgresql defines resources for PostgreSQL nodes.
 	Postgresql corev1.ResourceRequirements `json:"postgresql,omitempty"`
-	
+
 	// Kafka defines resources for Kafka brokers.
 	Kafka corev1.ResourceRequirements `json:"kafka,omitempty"`
-	
+
 	// ClickHouse defines resources for ClickHouse nodes.
 	ClickHouse corev1.ResourceRequirements `json:"clickhouse,omitempty"`
-	
+
 	// Snuba defines resources for Snuba components.
-	Snuba *SnubaResources `json:"snuba,omitempty"`
-	
+	Snuba corev1.ResourceRequirements `json:"snuba,omitempty"`
+
 	// Relay defines resources for Sentry Relay nodes.
 	Relay corev1.ResourceRequirements `json:"relay,omitempty"`
-	
+
 	// Symbolicator defines resources for Symbolicator nodes.
 	Symbolicator corev1.ResourceRequirements `json:"symbolicator,omitempty"`
 }
@@ -82,16 +82,16 @@ type Resources struct {
 type Persistence struct {
 	// Postgresql is the database used for Sentry's primary data storage.
 	Postgresql PersistenceConfig `json:"postgresql,omitempty"`
-	
+
 	// Redis is used for caching, rate limiting, and as a message broker.
 	Redis PersistenceConfig `json:"redis,omitempty"`
-	
+
 	// Kafka is used for event streaming in Sentry's processing pipeline.
 	Kafka *KafkaConfig `json:"kafka,omitempty"`
-	
+
 	// ClickHouse is used for analytics and event storage.
 	ClickHouse *ClickHouseConfig `json:"clickhouse,omitempty"`
-	
+
 	// Snuba is Sentry's event storage service that sits on top of ClickHouse.
 	Snuba *SnubaConfig `json:"snuba,omitempty"`
 }
@@ -101,7 +101,7 @@ type KafkaConfig struct {
 	// Managed defines the configuration for a managed Kafka instance.
 	// If set, the operator will create and manage the Kafka cluster.
 	Managed *KafkaManagedConfig `json:"managed,omitempty"`
-	
+
 	// External defines the configuration for connecting to an external Kafka cluster.
 	// If set, the operator will use the connection details from the specified Secret.
 	External *KafkaExternalConfig `json:"external,omitempty"`
@@ -111,16 +111,16 @@ type KafkaConfig struct {
 type KafkaManagedConfig struct {
 	// Replicas is the number of Kafka brokers to deploy.
 	Replicas int32 `json:"replicas,omitempty"`
-	
+
 	// Resources defines the CPU/memory requests and limits for Kafka brokers.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	
+
 	// Storage defines the storage configuration for Kafka brokers.
 	Storage *PersistentVolumeClaim `json:"storage,omitempty"`
-	
+
 	// Version is the Kafka version to deploy.
 	Version string `json:"version,omitempty"`
-	
+
 	// Config defines Kafka broker configuration.
 	Config map[string]string `json:"config,omitempty"`
 }
@@ -130,7 +130,7 @@ type KafkaExternalConfig struct {
 	// SecretName is the name of the Secret containing Kafka connection details.
 	// Expected keys: "bootstrap.servers", "sasl.username" (optional), "sasl.password" (optional)
 	SecretName string `json:"secretName"`
-	
+
 	// Topics is a list of topics that Sentry will use.
 	Topics []string `json:"topics,omitempty"`
 }
@@ -140,7 +140,7 @@ type ClickHouseConfig struct {
 	// Managed defines the configuration for a managed ClickHouse instance.
 	// If set, the operator will create and manage the ClickHouse cluster.
 	Managed *ClickHouseManagedConfig `json:"managed,omitempty"`
-	
+
 	// External defines the configuration for connecting to an external ClickHouse cluster.
 	// If set, the operator will use the connection details from the specified Secret.
 	External *ClickHouseExternalConfig `json:"external,omitempty"`
@@ -150,16 +150,16 @@ type ClickHouseConfig struct {
 type ClickHouseManagedConfig struct {
 	// Replicas is the number of ClickHouse nodes to deploy.
 	Replicas int32 `json:"replicas,omitempty"`
-	
+
 	// Resources defines the CPU/memory requests and limits for ClickHouse nodes.
 	Resources corev1.ResourceRequirements `json:"resources,omitempty"`
-	
+
 	// Storage defines the storage configuration for ClickHouse nodes.
 	Storage *PersistentVolumeClaim `json:"storage,omitempty"`
-	
+
 	// Version is the ClickHouse version to deploy.
 	Version string `json:"version,omitempty"`
-	
+
 	// Config defines ClickHouse configuration.
 	Config map[string]string `json:"config,omitempty"`
 }
@@ -175,10 +175,10 @@ type ClickHouseExternalConfig struct {
 type SnubaConfig struct {
 	// Replicas is the number of Snuba consumer and API nodes to deploy.
 	Replicas *SnubaReplicas `json:"replicas,omitempty"`
-	
+
 	// Resources defines the CPU/memory requests and limits for Snuba components.
 	Resources *SnubaResources `json:"resources,omitempty"`
-	
+
 	// Config defines Snuba-specific configuration.
 	Config map[string]string `json:"config,omitempty"`
 }
@@ -187,10 +187,10 @@ type SnubaConfig struct {
 type SnubaReplicas struct {
 	// API is the number of Snuba API nodes.
 	API int32 `json:"api,omitempty"`
-	
+
 	// Consumer is the number of Snuba consumer nodes.
 	Consumer int32 `json:"consumer,omitempty"`
-	
+
 	// Replacer is the number of Snuba replacer nodes.
 	Replacer int32 `json:"replacer,omitempty"`
 }
@@ -199,10 +199,10 @@ type SnubaReplicas struct {
 type SnubaResources struct {
 	// API defines resources for Snuba API nodes.
 	API corev1.ResourceRequirements `json:"api,omitempty"`
-	
+
 	// Consumer defines resources for Snuba consumer nodes.
 	Consumer corev1.ResourceRequirements `json:"consumer,omitempty"`
-	
+
 	// Replacer defines resources for Snuba replacer nodes.
 	Replacer corev1.ResourceRequirements `json:"replacer,omitempty"`
 }
@@ -240,22 +240,22 @@ type ExternalInstance struct {
 type Ingress struct {
 	// Enabled indicates whether to create an Ingress resource.
 	Enabled bool `json:"enabled"`
-	
+
 	// Type specifies the Ingress controller type (e.g., "nginx", "traefik", "openshift-route").
 	Type string `json:"type,omitempty"`
-	
+
 	// Host is the hostname for Sentry (e.g., "sentry.example.com").
 	Host string `json:"host"`
-	
+
 	// Path is the URL path prefix for Sentry (e.g., "/sentry").
 	Path string `json:"path,omitempty"`
-	
+
 	// TLS defines TLS configuration for the Ingress.
 	TLS *IngressTLS `json:"tls,omitempty"`
-	
+
 	// Annotations are additional annotations to add to the Ingress resource.
 	Annotations map[string]string `json:"annotations,omitempty"`
-	
+
 	// ClassName is the IngressClass name for Kubernetes 1.18+ clusters.
 	ClassName string `json:"className,omitempty"`
 
@@ -267,17 +267,17 @@ type Ingress struct {
 type IngressTLS struct {
 	// Enabled indicates whether TLS is enabled.
 	Enabled bool `json:"enabled"`
-	
+
 	// SecretName is the name of the Secret containing the TLS certificate and key.
 	// If not provided, a Secret will be created with a self-signed certificate.
 	SecretName string `json:"secretName,omitempty"`
-	
+
 	// CertManager indicates whether to use cert-manager for certificate management.
 	CertManager bool `json:"certManager,omitempty"`
-	
+
 	// Issuer is the cert-manager Issuer to use when CertManager is enabled.
 	Issuer string `json:"issuer,omitempty"`
-	
+
 	// IssuerKind is the kind of cert-manager Issuer (e.g., "Issuer", "ClusterIssuer").
 	IssuerKind string `json:"issuerKind,omitempty"`
 }
@@ -485,22 +485,22 @@ type PerformanceConfig struct {
 type Replica struct {
 	// Web is the number of Sentry web UI nodes.
 	Web int32 `json:"web,omitempty"`
-	
+
 	// Worker is the number of Sentry background worker nodes.
 	Worker int32 `json:"worker,omitempty"`
-	
+
 	// Kafka is the number of Kafka broker nodes.
 	Kafka int32 `json:"kafka,omitempty"`
-	
+
 	// ClickHouse is the number of ClickHouse nodes.
 	ClickHouse int32 `json:"clickhouse,omitempty"`
-	
+
 	// Snuba defines the number of replicas for different Snuba components.
 	Snuba *SnubaReplicas `json:"snuba,omitempty"`
-	
+
 	// Relay is the number of Sentry Relay nodes.
 	Relay int32 `json:"relay,omitempty"`
-	
+
 	// Symbolicator is the number of Symbolicator nodes.
 	Symbolicator int32 `json:"symbolicator,omitempty"`
 }

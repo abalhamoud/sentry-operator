@@ -25,16 +25,16 @@ import (
 
 // Constants for ports used by various components
 const (
-	PostgresPort      = 5432
-	PostgresUser      = "sentry"
-	PostgresDB        = "sentry"
-	RedisPort         = 6379
-	KafkaPort         = 9092
-	ClickHousePort    = 9000
+	PostgresPort       = 5432
+	PostgresUser       = "sentry"
+	PostgresDB         = "sentry"
+	RedisPort          = 6379
+	KafkaPort          = 9092
+	ClickHousePort     = 9000
 	ClickHouseHTTPPort = 8123
-	SnubaAPIPort      = 1218
-	RelayPort         = 3000
-	SymbolicatorPort  = 3021
+	SnubaAPIPort       = 1218
+	RelayPort          = 3000
+	SymbolicatorPort   = 3021
 )
 
 // GetStandardLabels returns the standard labels for all Sentry components

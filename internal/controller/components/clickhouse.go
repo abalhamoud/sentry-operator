@@ -169,13 +169,13 @@ func (r *ClickHouseReconciler) Reconcile(ctx context.Context, sentryCluster *sen
 		return ctrl.Result{}, errors.Wrap(err, "failed to get ClickHouse StatefulSet")
 	} else {
 		log.V(1).Info("ClickHouse StatefulSet already exists", "StatefulSet.Namespace", sts.Namespace, "StatefulSet.Name", sts.Name)
-		
+
 		// 5. Check StatefulSet readiness
 		if sts.Status.ReadyReplicas < *sts.Spec.Replicas {
 			log.Info("ClickHouse StatefulSet not yet ready", "ReadyReplicas", sts.Status.ReadyReplicas, "Replicas", *sts.Spec.Replicas)
 			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 		}
-		
+
 		// 6. Update StatefulSet if needed
 		desiredSts := r.defineClickHouseStatefulSet(sentryCluster)
 		if !reflect.DeepEqual(sts.Spec, desiredSts.Spec) {
@@ -196,10 +196,10 @@ func (r *ClickHouseReconciler) Reconcile(ctx context.Context, sentryCluster *sen
 // defineClickHousePVC creates the desired PersistentVolumeClaim object for ClickHouse.
 func (r *ClickHouseReconciler) defineClickHousePVC(sentryCluster *sentryv1alpha1.SentryCluster) *corev1.PersistentVolumeClaim {
 	labels := GetComponentLabels(sentryCluster, "clickhouse")
-	
+
 	// Parse the storage size
 	storageSize := resource.MustParse(sentryCluster.Spec.Persistence.ClickHouse.Managed.Storage.Size)
-	
+
 	// Create the PVC
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -209,7 +209,7 @@ func (r *ClickHouseReconciler) defineClickHousePVC(sentryCluster *sentryv1alpha1
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-			Resources: corev1.ResourceRequirements{
+			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: storageSize,
 				},
@@ -217,12 +217,12 @@ func (r *ClickHouseReconciler) defineClickHousePVC(sentryCluster *sentryv1alpha1
 			StorageClassName: &sentryCluster.Spec.Persistence.ClickHouse.Managed.Storage.StorageClass,
 		},
 	}
-	
+
 	// If StorageClass is empty, set it to nil to use the default StorageClass
 	if sentryCluster.Spec.Persistence.ClickHouse.Managed.Storage.StorageClass == "" {
 		pvc.Spec.StorageClassName = nil
 	}
-	
+
 	if err := controllerutil.SetControllerReference(sentryCluster, pvc, r.Scheme); err != nil {
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on ClickHouse PVC")
 	}
@@ -232,7 +232,7 @@ func (r *ClickHouseReconciler) defineClickHousePVC(sentryCluster *sentryv1alpha1
 // defineClickHouseConfigMap creates the desired ConfigMap object for ClickHouse configuration.
 func (r *ClickHouseReconciler) defineClickHouseConfigMap(sentryCluster *sentryv1alpha1.SentryCluster) *corev1.ConfigMap {
 	labels := GetComponentLabels(sentryCluster, "clickhouse")
-	
+
 	// Basic ClickHouse configuration
 	usersXML := `
 <clickhouse>
@@ -318,8 +318,8 @@ func (r *ClickHouseReconciler) defineClickHouseConfigMap(sentryCluster *sentryv1
 			Labels:    labels,
 		},
 		Data: map[string]string{
-			"users.xml":   usersXML,
-			"config.xml":  configXML,
+			"users.xml":  usersXML,
+			"config.xml": configXML,
 		},
 	}
 	if err := controllerutil.SetControllerReference(sentryCluster, configMap, r.Scheme); err != nil {
@@ -331,7 +331,7 @@ func (r *ClickHouseReconciler) defineClickHouseConfigMap(sentryCluster *sentryv1
 // defineClickHouseService creates the desired Service object for ClickHouse.
 func (r *ClickHouseReconciler) defineClickHouseService(sentryCluster *sentryv1alpha1.SentryCluster) *corev1.Service {
 	labels := GetComponentLabels(sentryCluster, "clickhouse")
-	
+
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sentryCluster.Name + "-clickhouse",
@@ -364,13 +364,13 @@ func (r *ClickHouseReconciler) defineClickHouseService(sentryCluster *sentryv1al
 // defineClickHouseStatefulSet creates the desired StatefulSet object for ClickHouse.
 func (r *ClickHouseReconciler) defineClickHouseStatefulSet(sentryCluster *sentryv1alpha1.SentryCluster) *appsv1.StatefulSet {
 	labels := GetComponentLabels(sentryCluster, "clickhouse")
-	
+
 	// Set default values
 	replicas := int32(1) // ClickHouse is typically deployed as a single instance in this setup
-	
+
 	// Get the secret name
 	secretName := sentryCluster.Name + "-secret"
-	
+
 	// Create the StatefulSet
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -494,7 +494,7 @@ func (r *ClickHouseReconciler) defineClickHouseStatefulSet(sentryCluster *sentry
 			},
 		},
 	}
-	
+
 	if err := controllerutil.SetControllerReference(sentryCluster, sts, r.Scheme); err != nil {
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on ClickHouse StatefulSet")
 	}

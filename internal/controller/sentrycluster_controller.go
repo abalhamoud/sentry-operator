@@ -19,12 +19,8 @@ package controller
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"github.com/pkg/errors"
-	appsv1 "k8s.io/api/apps/v1"
-	corev1 "k8s.io/api/core/v1"
-	networkingv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	apimeta "k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -42,19 +38,19 @@ import (
 type SentryClusterReconciler struct {
 	client.Client
 	Scheme *runtime.Scheme
-	
+
 	// Component reconcilers
-	ConfigReconciler      *components.ConfigReconciler
-	PostgresReconciler    *components.PostgresReconciler
-	RedisReconciler       *components.RedisReconciler
-	KafkaReconciler       *components.KafkaReconciler
-	ClickHouseReconciler  *components.ClickHouseReconciler
-	RelayReconciler       *components.RelayReconciler
-	SnubaReconciler       *components.SnubaReconciler
+	ConfigReconciler       *components.ConfigReconciler
+	PostgresReconciler     *components.PostgresReconciler
+	RedisReconciler        *components.RedisReconciler
+	KafkaReconciler        *components.KafkaReconciler
+	ClickHouseReconciler   *components.ClickHouseReconciler
+	RelayReconciler        *components.RelayReconciler
+	SnubaReconciler        *components.SnubaReconciler
 	SymbolicatorReconciler *components.SymbolicatorReconciler
-	SentryWebReconciler   *components.SentryWebReconciler
+	SentryWebReconciler    *components.SentryWebReconciler
 	SentryWorkerReconciler *components.SentryWorkerReconciler
-	IngressReconciler     *components.IngressReconciler
+	IngressReconciler      *components.IngressReconciler
 }
 
 // SetupWithManager sets up the controller with the Manager.
@@ -64,57 +60,57 @@ func (r *SentryClusterReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Client: r.Client,
 		Scheme: r.Scheme,
 	}
-	
+
 	r.PostgresReconciler = &components.PostgresReconciler{
 		Client: r.Client,
 		Scheme: r.Scheme,
 	}
-	
+
 	r.RedisReconciler = &components.RedisReconciler{
 		Client: r.Client,
 		Scheme: r.Scheme,
 	}
-	
+
 	r.KafkaReconciler = &components.KafkaReconciler{
 		Client: r.Client,
 		Scheme: r.Scheme,
 	}
-	
+
 	r.ClickHouseReconciler = &components.ClickHouseReconciler{
 		Client: r.Client,
 		Scheme: r.Scheme,
 	}
-	
+
 	r.RelayReconciler = &components.RelayReconciler{
 		Client: r.Client,
 		Scheme: r.Scheme,
 	}
-	
+
 	r.SnubaReconciler = &components.SnubaReconciler{
 		Client: r.Client,
 		Scheme: r.Scheme,
 	}
-	
+
 	r.SymbolicatorReconciler = &components.SymbolicatorReconciler{
 		Client: r.Client,
 		Scheme: r.Scheme,
 	}
-	
+
 	r.SentryWebReconciler = &components.SentryWebReconciler{
 		Client: r.Client,
 		Scheme: r.Scheme,
 	}
-	
+
 	r.SentryWorkerReconciler = &components.SentryWorkerReconciler{
 		Client: r.Client,
 		Scheme: r.Scheme,
 	}
-	
+
 	r.IngressReconciler = &components.IngressReconciler{
 		Client: r.Client,
 		Scheme: r.Scheme,
 	}
-	
+
 	return ctrl.NewControllerManagedBy(mgr).
 		For(&sentryv1alpha1.SentryCluster{}).
 		Complete(r)
@@ -455,6 +451,7 @@ func (r *SentryClusterReconciler) setStatusReady(ctx context.Context, sentryClus
 
 	return nil
 }
+
 // reconcileRedis handles the Redis deployment for Sentry.
 func (r *SentryClusterReconciler) reconcileRedis(ctx context.Context, sentryCluster *sentryv1alpha1.SentryCluster) (ctrl.Result, error) {
 	return r.RedisReconciler.Reconcile(ctx, sentryCluster)
@@ -483,4 +480,9 @@ func (r *SentryClusterReconciler) reconcileSentryWorker(ctx context.Context, sen
 // reconcileIngress handles the Ingress for Sentry.
 func (r *SentryClusterReconciler) reconcileIngress(ctx context.Context, sentryCluster *sentryv1alpha1.SentryCluster) (ctrl.Result, error) {
 	return r.IngressReconciler.Reconcile(ctx, sentryCluster)
+}
+
+// reconcileSnuba handles the Sentry Snuba deployment for Sentry.
+func (r *SentryClusterReconciler) reconcileSnuba(ctx context.Context, sentryCluster *sentryv1alpha1.SentryCluster) (ctrl.Result, error) {
+	return r.SnubaReconciler.Reconcile(ctx, sentryCluster)
 }

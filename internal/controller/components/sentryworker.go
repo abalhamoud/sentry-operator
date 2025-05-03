@@ -65,13 +65,13 @@ func (r *SentryWorkerReconciler) Reconcile(ctx context.Context, sentryCluster *s
 		return ctrl.Result{}, errors.Wrap(err, "failed to get Sentry Worker Deployment")
 	} else {
 		log.V(1).Info("Sentry Worker Deployment already exists", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
-		
+
 		// Check Deployment readiness
 		if deployment.Status.ReadyReplicas < *deployment.Spec.Replicas {
 			log.Info("Sentry Worker Deployment not yet ready", "ReadyReplicas", deployment.Status.ReadyReplicas, "Replicas", *deployment.Spec.Replicas)
 			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 		}
-		
+
 		// Update Deployment if needed
 		desiredDeployment := r.defineSentryWorkerDeployment(sentryCluster)
 		if !reflect.DeepEqual(deployment.Spec, desiredDeployment.Spec) {
@@ -92,16 +92,16 @@ func (r *SentryWorkerReconciler) Reconcile(ctx context.Context, sentryCluster *s
 // defineSentryWorkerDeployment creates the desired Deployment object for Sentry Worker.
 func (r *SentryWorkerReconciler) defineSentryWorkerDeployment(sentryCluster *sentryv1alpha1.SentryCluster) *appsv1.Deployment {
 	labels := GetComponentLabels(sentryCluster, "worker")
-	
+
 	// Set default values
 	replicas := int32(1)
 	if sentryCluster.Spec.Replica.Worker > 0 {
 		replicas = sentryCluster.Spec.Replica.Worker
 	}
-	
+
 	// Get the secret name
 	secretName := sentryCluster.Name + "-secret"
-	
+
 	// Create the Deployment
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -120,8 +120,8 @@ func (r *SentryWorkerReconciler) defineSentryWorkerDeployment(sentryCluster *sen
 				},
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
-						Name:  "sentry-worker",
-						Image: fmt.Sprintf("getsentry/sentry:%s", sentryCluster.Spec.Version),
+						Name:    "sentry-worker",
+						Image:   fmt.Sprintf("getsentry/sentry:%s", sentryCluster.Spec.Version),
 						Command: []string{"sentry", "run", "worker"},
 						Env: []corev1.EnvVar{
 							{Name: "SENTRY_SECRET_KEY", ValueFrom: &corev1.EnvVarSource{
@@ -195,11 +195,11 @@ func (r *SentryWorkerReconciler) defineSentryWorkerDeployment(sentryCluster *sen
 			},
 		},
 	}
-	
+
 	// Add environment variables for external PostgreSQL if configured
 	if sentryCluster.Spec.Persistence.Postgresql.External != nil {
 		secretName := sentryCluster.Spec.Persistence.Postgresql.External.SecretName
-		
+
 		// Replace the static environment variables with ones from the secret
 		for i, env := range deployment.Spec.Template.Spec.Containers[0].Env {
 			if env.Name == "SENTRY_POSTGRES_HOST" {
@@ -244,11 +244,11 @@ func (r *SentryWorkerReconciler) defineSentryWorkerDeployment(sentryCluster *sen
 			}
 		}
 	}
-	
+
 	// Add environment variables for external Redis if configured
 	if sentryCluster.Spec.Persistence.Redis.External != nil {
 		secretName := sentryCluster.Spec.Persistence.Redis.External.SecretName
-		
+
 		// Replace the static environment variables with ones from the secret
 		for i, env := range deployment.Spec.Template.Spec.Containers[0].Env {
 			if env.Name == "SENTRY_REDIS_HOST" {
@@ -277,11 +277,11 @@ func (r *SentryWorkerReconciler) defineSentryWorkerDeployment(sentryCluster *sen
 			}
 		}
 	}
-	
+
 	// Add environment variables for external Kafka if configured
 	if sentryCluster.Spec.Persistence.Kafka != nil && sentryCluster.Spec.Persistence.Kafka.External != nil {
 		secretName := sentryCluster.Spec.Persistence.Kafka.External.SecretName
-		
+
 		// Replace the static environment variables with ones from the secret
 		for i, env := range deployment.Spec.Template.Spec.Containers[0].Env {
 			if env.Name == "SENTRY_KAFKA_HOST" {
@@ -303,7 +303,7 @@ func (r *SentryWorkerReconciler) defineSentryWorkerDeployment(sentryCluster *sen
 			}
 		}
 	}
-	
+
 	if err := controllerutil.SetControllerReference(sentryCluster, deployment, r.Scheme); err != nil {
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on Sentry Worker Deployment")
 	}

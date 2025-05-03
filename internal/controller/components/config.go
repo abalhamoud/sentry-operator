@@ -175,7 +175,7 @@ system.url-prefix: '%s'
 			emailBackend = sentryCluster.Spec.Config.Email.Backend
 		}
 		configYmlContent += fmt.Sprintf("mail.backend: '%s'\n", emailBackend)
-		
+
 		if sentryCluster.Spec.Config.Email.From != "" {
 			configYmlContent += fmt.Sprintf("mail.from: '%s'\n", sentryCluster.Spec.Config.Email.From)
 		}
@@ -194,22 +194,22 @@ system.url-prefix: '%s'
 		if sentryCluster.Spec.Config.Privacy.IPAnonymization {
 			configYmlContent += "ip-anonymization: true\n"
 		}
-		
+
 		if len(sentryCluster.Spec.Config.Privacy.ExcludedIPs) > 0 {
 			configYmlContent += "excluded-ips:\n"
 			for _, ip := range sentryCluster.Spec.Config.Privacy.ExcludedIPs {
 				configYmlContent += fmt.Sprintf("  - '%s'\n", ip)
 			}
 		}
-		
+
 		if sentryCluster.Spec.Config.Privacy.ScrubData {
 			configYmlContent += "scrub-data: true\n"
 		}
-		
+
 		if sentryCluster.Spec.Config.Privacy.ScrubDefaults {
 			configYmlContent += "scrub-defaults: true\n"
 		}
-		
+
 		if len(sentryCluster.Spec.Config.Privacy.ScrubFields) > 0 {
 			configYmlContent += "scrub-fields:\n"
 			for _, field := range sentryCluster.Spec.Config.Privacy.ScrubFields {
@@ -220,11 +220,11 @@ system.url-prefix: '%s'
 
 	// Add performance settings if provided
 	if sentryCluster.Spec.Config.Performance != nil && sentryCluster.Spec.Config.Performance.Enabled {
-		log.info("Performance is configured but not used... ")
+		log.FromContext(context.Background()).Info("Performance is configured but not used... ")
 		// if sentryCluster.Spec.Config.Performance.SampleRate > 0 {
 		// 	configYmlContent += fmt.Sprintf("performance.sample-rate: %f\n", sentryCluster.Spec.Config.Performance.SampleRate)
 		// }
-		
+
 		// if sentryCluster.Spec.Config.Performance.TracesSampleRate > 0 {
 		// 	configYmlContent += fmt.Sprintf("performance.traces-sample-rate: %f\n", sentryCluster.Spec.Config.Performance.TracesSampleRate)
 		// }
@@ -241,11 +241,11 @@ system.url-prefix: '%s'
 		if sentryCluster.Spec.Config.RateLimiting.EventsPerMinute > 0 {
 			sentryConfPyContent += fmt.Sprintf("SENTRY_RATE_LIMIT = %d\n", sentryCluster.Spec.Config.RateLimiting.EventsPerMinute)
 		}
-		
+
 		if sentryCluster.Spec.Config.RateLimiting.ErrorsPerMinute > 0 {
 			sentryConfPyContent += fmt.Sprintf("SENTRY_ERROR_RATE_LIMIT = %d\n", sentryCluster.Spec.Config.RateLimiting.ErrorsPerMinute)
 		}
-		
+
 		if sentryCluster.Spec.Config.RateLimiting.TransactionsPerMinute > 0 {
 			sentryConfPyContent += fmt.Sprintf("SENTRY_TRANSACTION_RATE_LIMIT = %d\n", sentryCluster.Spec.Config.RateLimiting.TransactionsPerMinute)
 		}
@@ -256,7 +256,7 @@ system.url-prefix: '%s'
 		if sentryCluster.Spec.Config.DataRetention.EventRetentionDays > 0 {
 			sentryConfPyContent += fmt.Sprintf("SENTRY_EVENT_RETENTION_DAYS = %d\n", sentryCluster.Spec.Config.DataRetention.EventRetentionDays)
 		}
-		
+
 		if sentryCluster.Spec.Config.DataRetention.IssueRetentionDays > 0 {
 			sentryConfPyContent += fmt.Sprintf("SENTRY_ISSUE_RETENTION_DAYS = %d\n", sentryCluster.Spec.Config.DataRetention.IssueRetentionDays)
 		}

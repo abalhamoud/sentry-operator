@@ -110,13 +110,13 @@ func (r *SnubaReconciler) Reconcile(ctx context.Context, sentryCluster *sentryv1
 		return ctrl.Result{}, errors.Wrap(err, "failed to get Snuba Deployment")
 	} else {
 		log.V(1).Info("Snuba Deployment already exists", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
-		
+
 		// 4. Check Deployment readiness
 		if deployment.Status.ReadyReplicas < *deployment.Spec.Replicas {
 			log.Info("Snuba Deployment not yet ready", "ReadyReplicas", deployment.Status.ReadyReplicas, "Replicas", *deployment.Spec.Replicas)
 			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 		}
-		
+
 		// 5. Update Deployment if needed
 		desiredDeployment := r.defineSnubaDeployment(sentryCluster)
 		if !reflect.DeepEqual(deployment.Spec, desiredDeployment.Spec) {
@@ -137,7 +137,7 @@ func (r *SnubaReconciler) Reconcile(ctx context.Context, sentryCluster *sentryv1
 // defineSnubaConfigMap creates the desired ConfigMap object for Snuba configuration.
 func (r *SnubaReconciler) defineSnubaConfigMap(sentryCluster *sentryv1alpha1.SentryCluster) *corev1.ConfigMap {
 	labels := GetComponentLabels(sentryCluster, "snuba")
-	
+
 	// Basic Snuba configuration
 	snubaConfig := `
 [snuba]
@@ -163,7 +163,7 @@ auto_migrations = true
 // defineSnubaService creates the desired Service object for Snuba.
 func (r *SnubaReconciler) defineSnubaService(sentryCluster *sentryv1alpha1.SentryCluster) *corev1.Service {
 	labels := GetComponentLabels(sentryCluster, "snuba")
-	
+
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sentryCluster.Name + "-snuba",
@@ -191,19 +191,19 @@ func (r *SnubaReconciler) defineSnubaService(sentryCluster *sentryv1alpha1.Sentr
 // defineSnubaDeployment creates the desired Deployment object for Snuba.
 func (r *SnubaReconciler) defineSnubaDeployment(sentryCluster *sentryv1alpha1.SentryCluster) *appsv1.Deployment {
 	labels := GetComponentLabels(sentryCluster, "snuba")
-	
+
 	// Set default values
 	replicas := int32(1)
-	if sentryCluster.Spec.Replica.Snuba > 0 {
-		replicas = sentryCluster.Spec.Replica.Snuba
+	if sentryCluster.Spec.Replica.Snuba.Consumer > 0 {
+		replicas = sentryCluster.Spec.Replica.Snuba.Consumer
 	}
-	
+
 	// Get the secret name
 	secretName := sentryCluster.Name + "-secret"
-	
+
 	// Determine ClickHouse connection details
 	var clickhouseHost, clickhousePort, clickhouseUser, clickhousePassword, clickhouseDB string
-	
+
 	if sentryCluster.Spec.Persistence.ClickHouse.External != nil {
 		// Use external ClickHouse
 		clickhouseHost = fmt.Sprintf("$(CLICKHOUSE_HOST)")
@@ -219,10 +219,10 @@ func (r *SnubaReconciler) defineSnubaDeployment(sentryCluster *sentryv1alpha1.Se
 		clickhousePassword = fmt.Sprintf("$(CLICKHOUSE_PASSWORD)")
 		clickhouseDB = "sentry"
 	}
-	
+
 	// Determine Kafka connection details
 	var kafkaHost string
-	
+
 	if sentryCluster.Spec.Persistence.Kafka != nil && sentryCluster.Spec.Persistence.Kafka.External != nil {
 		// Use external Kafka
 		kafkaHost = fmt.Sprintf("$(KAFKA_HOST)")
@@ -230,7 +230,7 @@ func (r *SnubaReconciler) defineSnubaDeployment(sentryCluster *sentryv1alpha1.Se
 		// Use managed Kafka
 		kafkaHost = fmt.Sprintf("%s-kafka:%d", sentryCluster.Name, KafkaPort)
 	}
-	
+
 	// Create the Deployment
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -264,7 +264,7 @@ func (r *SnubaReconciler) defineSnubaDeployment(sentryCluster *sentryv1alpha1.Se
 							{Name: "CLICKHOUSE_PASSWORD", ValueFrom: &corev1.EnvVarSource{
 								SecretKeyRef: &corev1.SecretKeySelector{
 									LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-									Key:                  "clickhouse-password",
+									Key:                  clickhousePassword,
 								},
 							}},
 							{Name: "CLICKHOUSE_DATABASE", Value: clickhouseDB},
@@ -325,11 +325,11 @@ func (r *SnubaReconciler) defineSnubaDeployment(sentryCluster *sentryv1alpha1.Se
 			},
 		},
 	}
-	
+
 	// Add environment variables for external ClickHouse if configured
 	if sentryCluster.Spec.Persistence.ClickHouse.External != nil {
 		secretName := sentryCluster.Spec.Persistence.ClickHouse.External.SecretName
-		
+
 		// Replace the static environment variables with ones from the secret
 		for i, env := range deployment.Spec.Template.Spec.Containers[0].Env {
 			if env.Name == "CLICKHOUSE_HOST" {
@@ -374,11 +374,11 @@ func (r *SnubaReconciler) defineSnubaDeployment(sentryCluster *sentryv1alpha1.Se
 			}
 		}
 	}
-	
+
 	// Add environment variables for external Kafka if configured
 	if sentryCluster.Spec.Persistence.Kafka != nil && sentryCluster.Spec.Persistence.Kafka.External != nil {
 		secretName := sentryCluster.Spec.Persistence.Kafka.External.SecretName
-		
+
 		// Replace the static environment variables with ones from the secret
 		for i, env := range deployment.Spec.Template.Spec.Containers[0].Env {
 			if env.Name == "KAFKA_BOOTSTRAP_SERVER" || env.Name == "DEFAULT_BROKERS" {
@@ -392,7 +392,7 @@ func (r *SnubaReconciler) defineSnubaDeployment(sentryCluster *sentryv1alpha1.Se
 			}
 		}
 	}
-	
+
 	if err := controllerutil.SetControllerReference(sentryCluster, deployment, r.Scheme); err != nil {
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on Snuba Deployment")
 	}

@@ -144,13 +144,13 @@ func (r *PostgresReconciler) Reconcile(ctx context.Context, sentryCluster *sentr
 		return ctrl.Result{}, errors.Wrap(err, "failed to get Postgres StatefulSet")
 	} else {
 		log.V(1).Info("Postgres StatefulSet already exists", "StatefulSet.Namespace", sts.Namespace, "StatefulSet.Name", sts.Name)
-		
+
 		// 4. Check StatefulSet readiness
 		if sts.Status.ReadyReplicas < *sts.Spec.Replicas {
 			log.Info("Postgres StatefulSet not yet ready", "ReadyReplicas", sts.Status.ReadyReplicas, "Replicas", *sts.Spec.Replicas)
 			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 		}
-		
+
 		// 5. Update StatefulSet if needed
 		desiredSts := r.definePostgresStatefulSet(sentryCluster)
 		if !reflect.DeepEqual(sts.Spec, desiredSts.Spec) {
@@ -171,10 +171,10 @@ func (r *PostgresReconciler) Reconcile(ctx context.Context, sentryCluster *sentr
 // definePostgresPVC creates the desired PersistentVolumeClaim object for PostgreSQL.
 func (r *PostgresReconciler) definePostgresPVC(sentryCluster *sentryv1alpha1.SentryCluster) *corev1.PersistentVolumeClaim {
 	labels := GetComponentLabels(sentryCluster, "postgresql")
-	
+
 	// Parse the storage size
 	storageSize := resource.MustParse(sentryCluster.Spec.Persistence.Postgresql.Managed.Size)
-	
+
 	// Create the PVC
 	pvc := &corev1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
@@ -184,7 +184,7 @@ func (r *PostgresReconciler) definePostgresPVC(sentryCluster *sentryv1alpha1.Sen
 		},
 		Spec: corev1.PersistentVolumeClaimSpec{
 			AccessModes: []corev1.PersistentVolumeAccessMode{corev1.ReadWriteOnce},
-			Resources: corev1.ResourceRequirements{
+			Resources: corev1.VolumeResourceRequirements{
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: storageSize,
 				},
@@ -192,12 +192,12 @@ func (r *PostgresReconciler) definePostgresPVC(sentryCluster *sentryv1alpha1.Sen
 			StorageClassName: &sentryCluster.Spec.Persistence.Postgresql.Managed.StorageClass,
 		},
 	}
-	
+
 	// If StorageClass is empty, set it to nil to use the default StorageClass
 	if sentryCluster.Spec.Persistence.Postgresql.Managed.StorageClass == "" {
 		pvc.Spec.StorageClassName = nil
 	}
-	
+
 	if err := controllerutil.SetControllerReference(sentryCluster, pvc, r.Scheme); err != nil {
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on PostgreSQL PVC")
 	}
@@ -207,7 +207,7 @@ func (r *PostgresReconciler) definePostgresPVC(sentryCluster *sentryv1alpha1.Sen
 // definePostgresService creates the desired Service object for PostgreSQL.
 func (r *PostgresReconciler) definePostgresService(sentryCluster *sentryv1alpha1.SentryCluster) *corev1.Service {
 	labels := GetComponentLabels(sentryCluster, "postgresql")
-	
+
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sentryCluster.Name + "-postgres",
@@ -233,13 +233,13 @@ func (r *PostgresReconciler) definePostgresService(sentryCluster *sentryv1alpha1
 // definePostgresStatefulSet creates the desired StatefulSet object for PostgreSQL.
 func (r *PostgresReconciler) definePostgresStatefulSet(sentryCluster *sentryv1alpha1.SentryCluster) *appsv1.StatefulSet {
 	labels := GetComponentLabels(sentryCluster, "postgresql")
-	
+
 	// Set default values
 	replicas := int32(1) // PostgreSQL is typically deployed as a single instance in this setup
-	
+
 	// Get the secret name
 	secretName := sentryCluster.Name + "-secret"
-	
+
 	// Create the StatefulSet
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -320,7 +320,7 @@ func (r *PostgresReconciler) definePostgresStatefulSet(sentryCluster *sentryv1al
 			},
 		},
 	}
-	
+
 	if err := controllerutil.SetControllerReference(sentryCluster, sts, r.Scheme); err != nil {
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on PostgreSQL StatefulSet")
 	}

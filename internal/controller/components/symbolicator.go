@@ -104,13 +104,13 @@ func (r *SymbolicatorReconciler) Reconcile(ctx context.Context, sentryCluster *s
 		return ctrl.Result{}, errors.Wrap(err, "failed to get Symbolicator Deployment")
 	} else {
 		log.V(1).Info("Symbolicator Deployment already exists", "Deployment.Namespace", deployment.Namespace, "Deployment.Name", deployment.Name)
-		
+
 		// 4. Check Deployment readiness
 		if deployment.Status.ReadyReplicas < *deployment.Spec.Replicas {
 			log.Info("Symbolicator Deployment not yet ready", "ReadyReplicas", deployment.Status.ReadyReplicas, "Replicas", *deployment.Spec.Replicas)
 			return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 		}
-		
+
 		// 5. Update Deployment if needed
 		desiredDeployment := r.defineSymbolicatorDeployment(sentryCluster)
 		if !reflect.DeepEqual(deployment.Spec, desiredDeployment.Spec) {
@@ -131,7 +131,7 @@ func (r *SymbolicatorReconciler) Reconcile(ctx context.Context, sentryCluster *s
 // defineSymbolicatorConfigMap creates the desired ConfigMap object for Symbolicator configuration.
 func (r *SymbolicatorReconciler) defineSymbolicatorConfigMap(sentryCluster *sentryv1alpha1.SentryCluster) *corev1.ConfigMap {
 	labels := GetComponentLabels(sentryCluster, "symbolicator")
-	
+
 	// Basic Symbolicator configuration
 	symbolicatorConfig := `
 cache_dir: "/data"
@@ -161,7 +161,7 @@ metrics:
 // defineSymbolicatorService creates the desired Service object for Symbolicator.
 func (r *SymbolicatorReconciler) defineSymbolicatorService(sentryCluster *sentryv1alpha1.SentryCluster) *corev1.Service {
 	labels := GetComponentLabels(sentryCluster, "symbolicator")
-	
+
 	svc := &corev1.Service{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      sentryCluster.Name + "-symbolicator",
@@ -189,13 +189,13 @@ func (r *SymbolicatorReconciler) defineSymbolicatorService(sentryCluster *sentry
 // defineSymbolicatorDeployment creates the desired Deployment object for Symbolicator.
 func (r *SymbolicatorReconciler) defineSymbolicatorDeployment(sentryCluster *sentryv1alpha1.SentryCluster) *appsv1.Deployment {
 	labels := GetComponentLabels(sentryCluster, "symbolicator")
-	
+
 	// Set default values
 	replicas := int32(1)
 	if sentryCluster.Spec.Replica.Symbolicator > 0 {
 		replicas = sentryCluster.Spec.Replica.Symbolicator
 	}
-	
+
 	// Create the Deployment
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -278,7 +278,7 @@ func (r *SymbolicatorReconciler) defineSymbolicatorDeployment(sentryCluster *sen
 			},
 		},
 	}
-	
+
 	if err := controllerutil.SetControllerReference(sentryCluster, deployment, r.Scheme); err != nil {
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on Symbolicator Deployment")
 	}
