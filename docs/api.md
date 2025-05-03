@@ -29,7 +29,7 @@ Resource requests and limits for Sentry components.
 | `redis` | [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#resourcerequirements-v1-core) | Resource requirements for Redis. | Yes |
 | `kafka` | [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#resourcerequirements-v1-core) | Resource requirements for Kafka. | Yes |
 | `clickhouse` | [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#resourcerequirements-v1-core) | Resource requirements for ClickHouse. | Yes |
-| `snuba` | [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#resourcerequirements-v1-core) | Resource requirements for Snuba. | Yes |
+| `snuba` | [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#resourcerequirements-v1-core) | General resource requirements for Snuba. | Yes |
 | `relay` | [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#resourcerequirements-v1-core) | Resource requirements for Relay. | Yes |
 | `symbolicator` | [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#resourcerequirements-v1-core) | Resource requirements for Symbolicator. | Yes |
 
@@ -43,6 +43,7 @@ Persistence configuration for stateful components.
 | `redis` | [RedisPersistence](#redispersistence) | Redis persistence configuration. | Yes |
 | `kafka` | [KafkaPersistence](#kafkapersistence) | Kafka persistence configuration. | Yes |
 | `clickhouse` | [ClickHousePersistence](#clickhousepersistence) | ClickHouse persistence configuration. | Yes |
+| `snuba` | [SnubaConfig](#snubaconfig) | Snuba configuration. | Yes |
 
 #### PostgreSQLPersistence
 
@@ -123,6 +124,32 @@ The secret should contain the following keys:
 - `password`: The ClickHouse password.
 - `database`: The ClickHouse database name.
 
+#### SnubaConfig
+
+| Field | Type | Description | Required |
+|-------|------|-------------|----------|
+| `replicas` | [SnubaReplicas](#snubareplicas) | Replica configuration for Snuba components. | No |
+| `resources` | [SnubaResources](#snubaresources) | Resource requirements for Snuba components. | No |
+| `config` | map[string]string | Snuba-specific configuration. | No |
+
+#### SnubaReplicas
+
+| Field | Type | Description | Required |
+|-------|------|-------------|----------|
+| `api` | integer | The number of Snuba API replicas. | No (defaults to 1) |
+| `consumer` | integer | The number of Snuba consumer replicas. | No (defaults to 1) |
+| `replacer` | integer | The number of Snuba replacer replicas. | No (defaults to 1) |
+| `subscriptionConsumer` | integer | The number of Snuba subscription-consumer replicas. | No (defaults to 1) |
+
+#### SnubaResources
+
+| Field | Type | Description | Required |
+|-------|------|-------------|----------|
+| `api` | [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#resourcerequirements-v1-core) | Resource requirements for Snuba API. | No |
+| `consumer` | [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#resourcerequirements-v1-core) | Resource requirements for Snuba consumer. | No |
+| `replacer` | [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#resourcerequirements-v1-core) | Resource requirements for Snuba replacer. | No |
+| `subscriptionConsumer` | [ResourceRequirements](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.19/#resourcerequirements-v1-core) | Resource requirements for Snuba subscription-consumer. | No |
+
 ### Ingress
 
 Ingress configuration for exposing Sentry.
@@ -196,6 +223,7 @@ Replica count for scalable components.
 | `web` | integer | The number of Sentry web replicas. | No (defaults to 1) |
 | `worker` | integer | The number of Sentry worker replicas. | No (defaults to 1) |
 | `relay` | integer | The number of Relay replicas. | No (defaults to 1) |
+| `snuba` | [SnubaReplicas](#snubareplicas) | The number of Snuba replicas for each component. | No |
 
 ## Status
 

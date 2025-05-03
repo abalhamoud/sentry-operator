@@ -168,13 +168,22 @@ ClickHouse is used for analytics and event storage.
 Snuba is Sentry's event storage service that sits on top of ClickHouse.
 
 **Design choices**:
-- Configurable replicas for API, consumer, and replacer components
-- Separate resource requirements for each component
+- Split into multiple role-specific deployments (API, consumer, replacer, subscription-consumer)
+- Configurable replicas for each role independently
+- Separate resource requirements for each role
+- Role-specific commands and arguments
 - Configurable Snuba-specific settings
+- Labels to distinguish each deployment
+- Status tracking via conditions for each role
 
 **Considerations**:
 - Performance impacts query performance for event data
-- Different components have different scaling characteristics
+- Different roles have different scaling characteristics and resource needs
+- API role handles query requests and needs to be scaled for read performance
+- Consumer role processes incoming events and needs to be scaled for write throughput
+- Replacer role handles event replacements and deletions
+- Subscription-consumer role handles subscription processing for real-time dashboards and alerts
+- Each role has dependencies on the bootstrap job
 
 ## Security Considerations
 

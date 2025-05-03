@@ -131,6 +131,36 @@ spec:
         api: 2
         consumer: 2
         replacer: 1
+        subscriptionConsumer: 1
+      resources:
+        api:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        consumer:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "1000m"
+            memory: "1Gi"
+        replacer:
+          requests:
+            cpu: "300m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        subscriptionConsumer:
+          requests:
+            cpu: "300m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
       config:
         "ENABLE_SENTRY_METRICS_DEV": "true"
   
@@ -210,5 +240,6 @@ spec:
       api: 2
       consumer: 2
       replacer: 1
+      subscriptionConsumer: 1
     relay: 2
     symbolicator: 1

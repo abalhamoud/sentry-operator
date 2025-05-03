@@ -84,6 +84,9 @@ type SnubaReplicas struct {
 
 	// Replacer is the number of Snuba replacer nodes.
 	Replacer int32 `json:"replacer,omitempty"`
+
+	// SubscriptionConsumer is the number of Snuba subscription-consumer nodes.
+	SubscriptionConsumer int32 `json:"subscriptionConsumer,omitempty"`
 }
 
 // SnubaResources defines resource requirements for different Snuba components.
@@ -96,4 +99,7 @@ type SnubaResources struct {
 
 	// Replacer defines resources for Snuba replacer nodes.
 	Replacer corev1.ResourceRequirements `json:"replacer,omitempty"`
+
+	// SubscriptionConsumer defines resources for Snuba subscription-consumer nodes.
+	SubscriptionConsumer corev1.ResourceRequirements `json:"subscriptionConsumer,omitempty"`
 }
