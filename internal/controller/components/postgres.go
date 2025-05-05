@@ -19,7 +19,6 @@ package components
 import (
 	"context"
 	"fmt"
-	"reflect"
 	"time"
 
 	"github.com/pkg/errors"
@@ -153,14 +152,13 @@ func (r *PostgresReconciler) Reconcile(ctx context.Context, sentryCluster *sentr
 
 		// 5. Update StatefulSet if needed
 		desiredSts := r.definePostgresStatefulSet(sentryCluster)
-		if !reflect.DeepEqual(sts.Spec, desiredSts.Spec) {
-			log.Info("Updating existing Postgres StatefulSet", "StatefulSet.Namespace", sts.Namespace, "StatefulSet.Name", sts.Name)
+		_, err := controllerutil.CreateOrUpdate(ctx, r.Client, sts, func() error {
 			sts.Spec = desiredSts.Spec
-			if err := r.Update(ctx, sts); err != nil {
-				log.Error(err, "Failed to update Postgres StatefulSet", "StatefulSet.Namespace", sts.Namespace, "StatefulSet.Name", sts.Name)
-				return ctrl.Result{}, errors.Wrap(err, "failed to update Postgres StatefulSet")
-			}
-			return ctrl.Result{Requeue: true}, nil
+			return ctrl.Result{}, nil
+		})
+		if err != nil {
+			log.Error(err, "Failed to update Postgres StatefulSet")
+			return ctrl.Result{}, errors.Wrap(err, "failed to update Postgres StatefulSet")
 		}
 	}
 

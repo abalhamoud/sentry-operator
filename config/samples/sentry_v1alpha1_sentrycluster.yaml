@@ -80,8 +80,8 @@ spec:
     # PostgreSQL configuration
     postgresql:
       managed:
-        storageClass: "standard"
-        size: "10Gi"
+        # storageClass: "standard"
+        size: "1Gi"
       # Uncomment to use external PostgreSQL
       # external:
       #   secretName: "external-postgres-secret"
@@ -89,8 +89,8 @@ spec:
     # Redis configuration
     redis:
       managed:
-        storageClass: "standard"
-        size: "5Gi"
+        # storageClass: "standard"
+        size: "1Gi"
       # Uncomment to use external Redis
       # external:
       #   secretName: "external-redis-secret"
@@ -100,8 +100,8 @@ spec:
       managed:
         replicas: 3
         storage:
-          storageClass: "standard"
-          size: "10Gi"
+          # storageClass: "standard"
+          size: "1Gi"
         version: "3.3.2"
         config:
           "auto.create.topics.enable": "false"
@@ -118,8 +118,8 @@ spec:
       managed:
         replicas: 1
         storage:
-          storageClass: "standard"
-          size: "20Gi"
+          # storageClass: "standard"
+          size: "1Gi"
         version: "22.3.6"
       # Uncomment to use external ClickHouse
       # external:

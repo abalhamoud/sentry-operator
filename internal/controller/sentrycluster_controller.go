@@ -191,6 +191,7 @@ func (r *SentryClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 	// 2. Handle finalizers
 	isSentryClusterMarkedToBeDeleted := sentryCluster.GetDeletionTimestamp() != nil
 	if isSentryClusterMarkedToBeDeleted {
+		log.Info("Trying to delete cluster...","Name", sentryCluster.Name)
 		if controllerutil.ContainsFinalizer(&sentryCluster, sentryFinalizer) {
 			// Run finalization logic for sentryFinalizer. If the
 			// finalization logic fails, don't remove the finalizer so
@@ -208,6 +209,7 @@ func (r *SentryClusterReconciler) Reconcile(ctx context.Context, req ctrl.Reques
 				log.Error(err, "Failed to remove finalizer from SentryCluster")
 				return ctrl.Result{}, err
 			}
+			log.Info("Succesfully removed Finalizer from cluster")
 		}
 		return ctrl.Result{}, nil
 	}
