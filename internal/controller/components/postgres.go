@@ -154,7 +154,7 @@ func (r *PostgresReconciler) Reconcile(ctx context.Context, sentryCluster *sentr
 		desiredSts := r.definePostgresStatefulSet(sentryCluster)
 		_, err := controllerutil.CreateOrUpdate(ctx, r.Client, sts, func() error {
 			sts.Spec = desiredSts.Spec
-			return ctrl.Result{}, nil
+			return nil
 		})
 		if err != nil {
 			log.Error(err, "Failed to update Postgres StatefulSet")

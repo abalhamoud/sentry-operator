@@ -179,7 +179,7 @@ func (r *ClickHouseReconciler) Reconcile(ctx context.Context, sentryCluster *sen
 		desiredSts := r.defineClickHouseStatefulSet(sentryCluster)
 		_, err := controllerutil.CreateOrUpdate(ctx, r.Client, sts, func() error {
 			sts.Spec = desiredSts.Spec
-			return ctrl.Result{}, nil
+			return nil
 		})
 		if err != nil {
 			log.Error(err, "Failed to update ClickHouse StatefulSet")
