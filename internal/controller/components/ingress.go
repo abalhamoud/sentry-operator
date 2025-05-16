@@ -19,15 +19,13 @@ package components
 import (
 	"context"
 	"fmt"
-	"reflect"
-	"time"
-
 	"github.com/pkg/errors"
 	networkingv1 "k8s.io/api/networking/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
+	"reflect"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
@@ -51,12 +49,6 @@ func (r *IngressReconciler) Reconcile(ctx context.Context, sentryCluster *sentry
 	if !sentryCluster.Spec.Ingress.Enabled {
 		log.Info("Ingress is not enabled, skipping")
 		return ctrl.Result{}, nil
-	}
-	
-	// Check if dependencies are ready
-	if !r.areDependenciesReady(sentryCluster) {
-		log.Info("Dependencies for Ingress are not ready yet, requeuing")
-		return ctrl.Result{RequeueAfter: time.Second * 30}, nil
 	}
 
 	// Reconcile Ingress
@@ -187,14 +179,4 @@ func (r *IngressReconciler) defineIngress(sentryCluster *sentryv1alpha1.SentryCl
 		log.FromContext(context.Background()).Error(err, "Failed to set controller reference on Ingress")
 	}
 	return ingress
-}
-
-// areDependenciesReady checks if all dependencies for Ingress are ready
-func (r *IngressReconciler) areDependenciesReady(sentryCluster *sentryv1alpha1.SentryCluster) bool {
-	// Ingress primarily depends on Sentry Web service being ready
-	if !sentryCluster.Status.ComponentStatus.Web.Ready {
-		return false
-	}
-	
-	return true
 }

@@ -19,6 +19,7 @@ package components
 import (
 	"context"
 	"fmt"
+	"github.com/go-logr/logr"
 	"time"
 
 	"github.com/pkg/errors"
@@ -53,37 +54,13 @@ func (r *PostgresReconciler) Reconcile(ctx context.Context, sentryCluster *sentr
 
 	// Check if external Postgres is configured
 	if postgresPersistence.External != nil {
-		// Handle external Postgres
-		secretName := postgresPersistence.External.SecretName
-		log.Info("Using external Postgres", "SecretName", secretName)
-
-		// Fetch the Secret containing the connection details
-		secret := &corev1.Secret{}
-		err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: sentryCluster.Namespace}, secret)
-		if err != nil {
-			log.Error(err, "Failed to get external Postgres Secret", "SecretName", secretName)
-			return ctrl.Result{}, errors.Wrap(err, "failed to get external Postgres Secret")
-		}
-
-		// Validate the Secret data
-		host := string(secret.Data["host"])
-		port := string(secret.Data["port"])
-		user := string(secret.Data["user"])
-		dbname := string(secret.Data["dbname"])
-		// password := string(secret.Data["password"]) // Optional
-
-		if host == "" || port == "" || user == "" || dbname == "" {
-			err := fmt.Errorf("required keys 'host', 'port', 'user', and 'dbname' not found in Secret '%s'", secretName)
-			log.Error(err, "Invalid external Postgres Secret")
-			return ctrl.Result{}, err
-		}
-
-		log.Info("Successfully validated external Postgres connection details", "Host", host, "Port", port, "User", user, "DBName", dbname)
-		// Skip creating managed resources (PVC, Service, StatefulSet)
-		log.Info("Skipping managed Postgres resources because external Postgres is configured")
-		return ctrl.Result{}, nil
+		return reconcileExternalPostgres(ctx, sentryCluster, postgresPersistence, log, r)
 	}
 
+	return reconcileManagedPostgres(ctx, sentryCluster, r, log)
+}
+
+func reconcileManagedPostgres(ctx context.Context, sentryCluster *sentryv1alpha1.SentryCluster, r *PostgresReconciler, log logr.Logger) (ctrl.Result, error) {
 	// --- Assuming Managed Postgres ---
 
 	// 1. Reconcile PVC
@@ -163,6 +140,38 @@ func (r *PostgresReconciler) Reconcile(ctx context.Context, sentryCluster *sentr
 	}
 
 	log.Info("Postgres reconciled successfully", "SentryCluster", sentryCluster.Name)
+	return ctrl.Result{}, nil
+}
+
+func reconcileExternalPostgres(ctx context.Context, sentryCluster *sentryv1alpha1.SentryCluster, postgresPersistence sentryv1alpha1.PersistenceConfig, log logr.Logger, r *PostgresReconciler) (ctrl.Result, error) {
+	// Handle external Postgres
+	secretName := postgresPersistence.External.SecretName
+	log.Info("Using external Postgres", "SecretName", secretName)
+
+	// Fetch the Secret containing the connection details
+	secret := &corev1.Secret{}
+	err := r.Get(ctx, types.NamespacedName{Name: secretName, Namespace: sentryCluster.Namespace}, secret)
+	if err != nil {
+		log.Error(err, "Failed to get external Postgres Secret", "SecretName", secretName)
+		return ctrl.Result{}, errors.Wrap(err, "failed to get external Postgres Secret")
+	}
+
+	// Validate the Secret data
+	host := string(secret.Data["host"])
+	port := string(secret.Data["port"])
+	user := string(secret.Data["user"])
+	dbname := string(secret.Data["dbname"])
+	// password := string(secret.Data["password"]) // Optional
+
+	if host == "" || port == "" || user == "" || dbname == "" {
+		err := fmt.Errorf("required keys 'host', 'port', 'user', and 'dbname' not found in Secret '%s'", secretName)
+		log.Error(err, "Invalid external Postgres Secret")
+		return ctrl.Result{}, err
+	}
+
+	log.Info("Successfully validated external Postgres connection details", "Host", host, "Port", port, "User", user, "DBName", dbname)
+	// Skip creating managed resources (PVC, Service, StatefulSet)
+	log.Info("Skipping managed Postgres resources because external Postgres is configured")
 	return ctrl.Result{}, nil
 }
 
