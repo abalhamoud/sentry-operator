@@ -45,6 +45,30 @@ type SentryClusterSpec struct {
 
 	// Replica defines the number of web and worker replicas.
 	Replica Replica `json:"replica,omitempty"`
+
+	// Postgres defines the configuration for PostgreSQL.
+	Postgres *PostgresConfig `json:"postgres,omitempty"`
+}
+
+// PostgresConfig defines the configuration for PostgreSQL.
+type PostgresConfig struct {
+	// Image is the PostgreSQL image to use.
+	Image string `json:"image,omitempty"`
+
+	// Port is the PostgreSQL port to use.
+	Port int32 `json:"port,omitempty"`
+
+	// User is the PostgreSQL user to use.
+	User string `json:"user,omitempty"`
+
+	// DBName is the PostgreSQL database name to use.
+	DBName string `json:"dbName,omitempty"`
+
+	// SecretName is the name of the Secret containing the PostgreSQL password.
+	SecretName string `json:"secretName,omitempty"`
+
+	// SecretKey is the key in the Secret containing the PostgreSQL password.
+	SecretKey string `json:"secretKey,omitempty"`
 }
 
 // +kubebuilder:object:root=true

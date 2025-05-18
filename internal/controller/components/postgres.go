@@ -52,6 +52,9 @@ func (r *PostgresReconciler) Reconcile(ctx context.Context, sentryCluster *sentr
 
 	postgresPersistence := sentryCluster.Spec.Persistence.Postgresql
 
+	// Update the component status
+	defer r.updatePostgresStatus(ctx, sentryCluster, err)
+
 	// Check if external Postgres is configured
 	if postgresPersistence.External != nil {
 		return reconcileExternalPostgres(ctx, sentryCluster, postgresPersistence, log, r)
@@ -195,6 +198,9 @@ func (r *PostgresReconciler) definePostgresPVC(sentryCluster *sentryv1alpha1.Sen
 				Requests: corev1.ResourceList{
 					corev1.ResourceStorage: storageSize,
 				},
+				Limits: corev1.ResourceList{
+					corev1.ResourceStorage: storageSize,
+				},
 			},
 			StorageClassName: &sentryCluster.Spec.Persistence.Postgresql.Managed.StorageClass,
 		},
@@ -247,6 +253,30 @@ func (r *PostgresReconciler) definePostgresStatefulSet(sentryCluster *sentryv1al
 	// Get the secret name
 	secretName := sentryCluster.Name + "-secret"
 
+	// Get Postgres configuration
+	postgresConfig := sentryCluster.Spec.Postgres
+
+	// Set default values
+	image := "postgres:13-alpine"
+	port := int32(PostgresPort)
+	user := PostgresUser
+	dbName := PostgresDB
+
+	if postgresConfig != nil {
+		if postgresConfig.Image != "" {
+			image = postgresConfig.Image
+		}
+		if postgresConfig.Port != 0 {
+			port = postgresConfig.Port
+		}
+		if postgresConfig.User != "" {
+			user = postgresConfig.User
+		}
+		if postgresConfig.DBName != "" {
+			dbName = postgresConfig.DBName
+		}
+	}
+
 	// Create the StatefulSet
 	sts := &appsv1.StatefulSet{
 		ObjectMeta: metav1.ObjectMeta{
@@ -267,18 +297,18 @@ func (r *PostgresReconciler) definePostgresStatefulSet(sentryCluster *sentryv1al
 				Spec: corev1.PodSpec{
 					Containers: []corev1.Container{{
 						Name:  "postgresql",
-						Image: "postgres:13-alpine",
+						Image: image,
 						Ports: []corev1.ContainerPort{{
-							ContainerPort: PostgresPort,
+							ContainerPort: int32(port),
 							Name:          "postgresql",
 						}},
 						Env: []corev1.EnvVar{
-							{Name: "POSTGRES_USER", Value: PostgresUser},
-							{Name: "POSTGRES_DB", Value: PostgresDB},
+							{Name: "POSTGRES_USER", Value: user},
+							{Name: "POSTGRES_DB", Value: dbName},
 							{Name: "POSTGRES_PASSWORD", ValueFrom: &corev1.EnvVarSource{
 								SecretKeyRef: &corev1.SecretKeySelector{
-									LocalObjectReference: corev1.LocalObjectReference{Name: secretName},
-									Key:                  "postgres-password",
+									LocalObjectReference: corev1.LocalObjectReference{Name: postgresConfig.SecretName},
+									Key:                  postgresConfig.SecretKey,
 								},
 							}},
 							{Name: "PGDATA", Value: "/var/lib/postgresql/data/pgdata"},
@@ -293,7 +323,7 @@ func (r *PostgresReconciler) definePostgresStatefulSet(sentryCluster *sentryv1al
 								Exec: &corev1.ExecAction{
 									Command: []string{
 										"pg_isready",
-										"-U", PostgresUser,
+										"-U", user,
 									},
 								},
 							},
@@ -306,7 +336,7 @@ func (r *PostgresReconciler) definePostgresStatefulSet(sentryCluster *sentryv1al
 								Exec: &corev1.ExecAction{
 									Command: []string{
 										"pg_isready",
-										"-U", PostgresUser,
+										"-U", user,
 									},
 								},
 							},
